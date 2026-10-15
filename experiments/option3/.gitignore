@@ -1,0 +1,37 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.streamlit/secrets.toml
+option3_engine/
+
+# SadTalker installation and generated model files
+option3_engine/
+checkpoints/
+*.safetensors
+*.pth
+*.pth.tar
+*.ckpt
+*.onnx
+
+# Virtual environments and Python caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Private credentials and local configuration
+.env
+.env.*
+.streamlit/secrets.toml
+mwai-config.json
+
+# Generated audio and video
+*.mp3
+*.wav
+*.mp4
+*.log
+
+# Local files
+.vscode/
+.idea/
