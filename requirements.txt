@@ -1,0 +1,6 @@
+﻿streamlit>=1.39.0
+pypdf>=4.0.0
+edge-tts>=6.1.12
+SpeechRecognition>=3.10.0
+sentry-sdk>=2.14.0
+numpy>=1.26.0

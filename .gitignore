@@ -1,0 +1,15 @@
+﻿.venv/
+__pycache__/
+*.pyc
+*.bak*
+.env
+mwai-config.json
+.streamlit/secrets.toml
+avatar/HeadTTS/node_modules/
+avatar/HeadAudio/node_modules/
+.env
+.venv/
+__pycache__/
+*.pyc
+.streamlit/secrets.toml
+
