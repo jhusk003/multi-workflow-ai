@@ -29,7 +29,7 @@ except ImportError:
     SENTRY_AVAILABLE = False
 
 st.set_page_config(
-    page_title="Seller Assist · Whimsical Kawaii Edition",
+    page_title="Seller Assist · Your Shop Headquarters",
     page_icon="🌸",
     layout="wide",
 )
@@ -146,7 +146,7 @@ ASSISTANTS = {
         "voice": "en-US-EmmaNeural", "eleven_voice_id": "EXAVITQu4vr4xnSDxMaL",
         "photo": "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=900&q=85",
         "tone": "cheerful, analytical and supportive",
-        "specialty": "TabPFN-3.5 inventory forecasting, EOQ reorder calculation, stockout prediction, safety stock.",
+        "specialty": "Inventory velocity, transparent rule-based stockout estimates, reorder planning and safety stock.",
     },
     "Level 2: Listing Studio": {
         "name": "Jordan", "level": "LEVEL 2", "color": "#70d6ff",
@@ -334,6 +334,10 @@ div[data-testid="stForm"] {
 </style>
 """, unsafe_allow_html=True)
 
+# PREMIUM PASTEL REDESIGN v17: visual layer loaded after v16 CSS.
+from premium_theme import apply_premium_theme
+apply_premium_theme()
+
 STATE_KEY = "seller_assist_kawaii_workspaces"
 
 def new_workspace():
@@ -341,7 +345,7 @@ def new_workspace():
         "messages": [], "last_reply": "", "last_audio": "", "word_timings": [],
         "reply_id": "", "file_text": SAMPLE_SELLER_CSV, "file_name": "global_sync.csv", "tabpfn_report": "",
         "schedule_c_pl": "", "generated_po": "", "exported_listing_csv": "",
-        "last_model_used": "Google Gemma 3 (Open-Weight)"
+        "last_model_used": "Not queried yet"
     }
 
 def ensure_workspaces(session):
@@ -356,7 +360,7 @@ def ensure_workspaces(session):
     if "seller_xp" not in session:
         session["seller_xp"] = db_b["xp"]
     if "telemetry" not in session:
-        session["telemetry"] = {"calls": 28, "last_latency_ms": 174, "errors": 0}
+        session["telemetry"] = {"calls": 0, "last_latency_ms": 0, "errors": 0}
     return session[STATE_KEY]
 
 workspaces = ensure_workspaces(st.session_state)
@@ -378,7 +382,7 @@ def fetch_serpapi_competitor_pricing(query):
     key = secret("SERPAPI_API_KEY")
     if not key:
         return (
-            f"### 🌸 Kawaii Market Benchmark for **{query}**\n"
+            f"### 🌸 Illustrative market example (NOT live results) for **{query}**\n"
             "- **Etsy Bestseller Avg:** `$24.00` · Free shipping eligible\n"
             "- **Shopify Boutique Median:** `$26.50` · 68% gross margin\n"
             "- **Amazon Handmade Range:** `$19.99 – $29.99`\n"
@@ -430,7 +434,7 @@ def run_tabpfn_inventory_forecast(csv_text, fee_rate=0.095):
             )
         sku_forecasts.append(f"| {sku} | {name[:18]} | {int(stock)} | {days_stockout}d | {eoq_units}u | ${net_profit:.2f} |")
     return (
-        f"### 🔮 TabPFN-3.5 Forecast & EOQ Restock Plan\n"
+        f"### 📦 Rule-based Inventory & Restock Estimate\n"
         f"- **Weekly Net Profit:** `${total_profit:,.2f}`\n\n"
         "| SKU | Item | Stock | Horizon | EOQ Order | Unit Net |\n|---|---|---|---|---|---|\n"
         + "\n".join(sku_forecasts)
@@ -480,7 +484,7 @@ def run_ai(mode, workspace, prompt, reference=""):
     )
     user_content = prompt.strip() or "Review my shop data and highlight top actions."
     if workspace.get("tabpfn_report"):
-        user_content += "\n\n[TABPFN REPORT]:\n" + workspace["tabpfn_report"][:2500]
+        user_content += "\n\n[INVENTORY ESTIMATE]:\n" + workspace["tabpfn_report"][:2500]
     if workspace.get("schedule_c_pl"):
         user_content += "\n\n[SCHEDULE C P&L]:\n" + workspace["schedule_c_pl"][:1500]
     if reference:
@@ -545,12 +549,11 @@ def run_ai(mode, workspace, prompt, reference=""):
     if reply:
         return reply
 
-    return (
-        f"Here is {ast['name']}'s analysis for **{prompt}**:\n\n"
-        "- **Urgent Stockout Priority:** SKU `SLR-104` (Linen Cross-Back Apron) has only **3.2 days** of stock left against a 12-day lead time (EOQ Reorder: **30 units**), and `SLR-106` (Ceramic Matcha Whisk Holder) has **3.0 days** left (EOQ Reorder: **28 units**).\n"
-        "- **Profit & Margin Leader:** `SLR-102` (Walnut Cutting Board) generates **$40.99 net profit per unit** after marketplace fees, driving $368.91/week.\n"
-        "- **Next Step:** Click **📋 Generate PO** or **🏷️ Export CSV** on the left panel to execute this workflow."
-    )
+    workspace["last_model_used"] = "No model responded"
+    st.session_state["telemetry"]["errors"] += 1
+    return ("I couldn't reach a live AI model. Please configure GEMINI_API_KEY or "
+            "GROQ_API_KEY in Render environment settings, then try again. "
+            "The rule-based inventory tools remain available without an AI response.")
 
 def neural_speech(text, voice, eleven_id="21m00Tcm4TlvDq8ikWAM"):
     clean = re.sub(r"[*#`_~>|]+", " ", text or "").strip()[:800]
@@ -631,6 +634,13 @@ DASHBOARD_CHARTS_HTML = r"""<!DOCTYPE html>
   .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
   canvas { width: 100%; height: 280px; display: block; }
 </style>
+<style>
+  .grid {gap:14px!important;}
+  .card {border:1px solid #e8dff4!important;box-shadow:0 9px 22px rgba(71,45,118,.075)!important;border-radius:18px!important;background:#fff!important;}
+  .title {font-size:12px!important;color:#554378!important;}
+  .legend {color:#5c6177!important;font-size:11px!important;flex-wrap:wrap;gap:6px!important;}
+  @media(max-width:650px){.card{padding:10px!important}.title{font-size:10px!important}.legend{font-size:9px!important}.grid{gap:6px!important}}
+  </style>
 </head>
 <body>
 <div class="grid">
@@ -638,9 +648,9 @@ DASHBOARD_CHARTS_HTML = r"""<!DOCTYPE html>
     <div class="title-row">
       <span class="title">📈 REVENUE vs. PROFIT vs. BUDGET</span>
       <div class="legend">
-        <span><i class="dot" style="background:#00bcd4;"></i>Sales</span>
-        <span><i class="dot" style="background:#00e676;"></i>Profit</span>
-        <span><i class="dot" style="background:#ff4081;"></i>Budget</span>
+        <span><i class="dot" style="background:#8b70c2;"></i>Sales</span>
+        <span><i class="dot" style="background:#58ad93;"></i>Profit</span>
+        <span><i class="dot" style="background:#eb81ad;"></i>Budget</span>
       </div>
     </div>
     <canvas id="revCanvas"></canvas>
@@ -649,8 +659,8 @@ DASHBOARD_CHARTS_HTML = r"""<!DOCTYPE html>
     <div class="title-row">
       <span class="title">📦 STOCK vs. WEEKLY VELOCITY</span>
       <div class="legend">
-        <span><i class="dot" style="background:#ffd600;"></i>Stock</span>
-        <span><i class="dot" style="background:#ff4081;"></i>Sold</span>
+        <span><i class="dot" style="background:#e7b754;"></i>Stock</span>
+        <span><i class="dot" style="background:#eb81ad;"></i>Sold</span>
       </div>
     </div>
     <canvas id="skuCanvas"></canvas>
@@ -680,7 +690,7 @@ DASHBOARD_CHARTS_HTML = r"""<!DOCTYPE html>
 
     ctx.strokeStyle = 'rgba(126, 87, 194, 0.12)';
     ctx.fillStyle = '#5e35b1';
-    ctx.font = '500 10px Quicksand';
+    ctx.font = '500 11px Quicksand';
     for (let i = 0; i <= 4; i++) {
       const y = padT + ch - (i / 4) * ch;
       ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + cw, y); ctx.stroke();
@@ -699,10 +709,10 @@ DASHBOARD_CHARTS_HTML = r"""<!DOCTYPE html>
       const sH = (sVal / maxV) * ch;
       const pH = (pVal / maxV) * ch;
 
-      ctx.fillStyle = '#00bcd4';
+      ctx.fillStyle = '#8b70c2';
       ctx.fillRect(gx, padT + ch - sH, barW, sH);
 
-      ctx.fillStyle = '#00e676';
+      ctx.fillStyle = '#58ad93';
       ctx.fillRect(gx + barW + 3, padT + ch - pH, barW, pH);
 
       ctx.fillStyle = '#4a154b';
@@ -712,12 +722,12 @@ DASHBOARD_CHARTS_HTML = r"""<!DOCTYPE html>
 
     if (D.dailyBudget > 0) {
       const by = padT + ch - Math.min(ch, (D.dailyBudget / maxV) * ch);
-      ctx.strokeStyle = '#ff4081';
+      ctx.strokeStyle = '#eb81ad';
       ctx.lineWidth = 2.5;
       ctx.setLineDash([4, 4]);
       ctx.beginPath(); ctx.moveTo(padL, by); ctx.lineTo(padL + cw, by); ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = '#ff4081';
+      ctx.fillStyle = '#eb81ad';
       ctx.font = '700 10px Quicksand';
       ctx.fillText('Target: ' + D.sym + Math.round(D.dailyBudget), padL + 8, Math.max(14, by - 6));
     }
@@ -732,7 +742,7 @@ DASHBOARD_CHARTS_HTML = r"""<!DOCTYPE html>
 
     ctx.strokeStyle = 'rgba(126, 87, 194, 0.12)';
     ctx.fillStyle = '#5e35b1';
-    ctx.font = '500 10px Quicksand';
+    ctx.font = '500 11px Quicksand';
     for (let i = 0; i <= 4; i++) {
       const y = padT + ch - (i / 4) * ch;
       ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + cw, y); ctx.stroke();
@@ -750,10 +760,10 @@ DASHBOARD_CHARTS_HTML = r"""<!DOCTYPE html>
       const stH = (stVal / maxV) * ch;
       const slH = (slVal / maxV) * ch;
 
-      ctx.fillStyle = '#ffd600';
+      ctx.fillStyle = '#e7b754';
       ctx.fillRect(gx, padT + ch - stH, barW, stH);
 
-      ctx.fillStyle = '#ff4081';
+      ctx.fillStyle = '#eb81ad';
       ctx.fillRect(gx + barW + 3, padT + ch - slH, barW, slH);
 
       ctx.fillStyle = '#4a154b';
@@ -818,13 +828,26 @@ AVATAR_HTML = r"""<!DOCTYPE html>
   .status-bar { display: flex; justify-content: space-between; font-size: 10.5px; color: #5e35b1; font-weight: 600; }
   #caption { font-size: 11.5px; color: #2b2d42; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
 </style>
+<style>
+ .panel{border:1px solid #e8dff4!important;border-radius:22px!important;box-shadow:0 12px 28px rgba(71,45,118,.07)!important;}
+ .stage{background:linear-gradient(130deg,#f4ecff 0%,#fceaf4 48%,#eef8f5 100%)!important;}
+ .plate{background:rgba(255,255,255,.92)!important;color:#554378!important;border:1px solid #e4d9ed!important;box-shadow:none!important;font-size:12px!important;}
+ .live-pill{background:#fff!important;color:#7052b8!important;border:1px solid #e8dff4!important;box-shadow:none!important;}
+ .controls{background:#fff!important;border-top:1px solid #e8dff4!important;}
+ button{background:#7052b8!important;border:0!important;border-radius:12px!important;box-shadow:none!important;font-size:12px!important;}
+ button.alt{background:#f5eeff!important;color:#5e438e!important;}
+ #voice{accent-color:#7052b8!important;} .status-bar{color:#6d607a!important;font-size:11px!important;}
+ #caption{font-size:12px!important;color:#293047!important;}
+ button:focus-visible{outline:3px solid #ff75ad;outline-offset:2px;}
+ @media(prefers-reduced-motion:reduce){button{transition:none!important;}}
+ </style>
 </head>
 <body>
 <div class="panel">
   <div class="stage">
     <canvas id="glCanvas"></canvas>
     <div class="plate" id="plate"></div>
-    <div class="live-pill">● KAWAII AI</div>
+    <div class="live-pill">● YOUR AI SPECIALIST</div>
   </div>
   <div class="controls">
     <div class="buttons">
@@ -1023,6 +1046,12 @@ MIC_HTML = r"""<!DOCTYPE html>
     text-align: right;
   }
 </style>
+<style>
+ .mic-bar{background:#fff!important;border:1px solid #e8dff4!important;box-shadow:0 3px 10px rgba(71,45,118,.04)!important;border-radius:13px!important;}
+ #micBtn{background:#7052b8!important;border:0!important;box-shadow:none!important;border-radius:10px!important;font-size:12px!important;}
+ #micStatus{color:#5c6177!important;font-size:12px!important;}
+ #micBtn:focus-visible{outline:3px solid #ff75ad;outline-offset:2px;}
+ </style>
 </head>
 <body>
 <div class="mic-bar">
@@ -1170,9 +1199,9 @@ MIC_HTML = r"""<!DOCTYPE html>
 
 # Sidebar Navigation with Gamification & Global Settings
 with st.sidebar:
-    st.markdown("## 🌸 SELLER ASSIST")
-    st.caption(f"Kawaii Edition · XP: {st.session_state['seller_xp']} ⭐")
-    st.markdown("### **MAIN NAVIGATION**")
+    st.markdown("## ✿ Seller Assist")
+    st.caption(f"Your shop headquarters · {st.session_state['seller_xp']} XP ✨")
+    st.markdown("### Explore your workspace")
     nav_mode = st.radio(
         "Select View",
         ["📊 Executive Dashboard", "🎨 Specialist Rooms (4 AI Models)"],
@@ -1188,19 +1217,19 @@ with st.sidebar:
     active_fee_rate = MARKETPLACE_FEES[market_choice]
 
     if nav_mode == "🎨 Specialist Rooms (4 AI Models)":
-        st.markdown("### **CHOOSE AI LEVEL**")
+        st.markdown("### Meet your specialist")
         mode = st.radio("Select Level", list(ASSISTANTS), key="bit_mode", label_visibility="collapsed")
         info = ASSISTANTS[mode]
         data = workspaces[mode]
 
     st.divider()
-    st.markdown("### **🛠️ Sentry APM & Telemetry**")
+    st.markdown("### Diagnostics")
     tel = st.session_state["telemetry"]
-    st.caption(f"🟢 Sentry Status: {'Connected' if SENTRY_AVAILABLE else 'Active (Simulated)'}")
-    st.caption(f"⚡ Last AI Latency: {tel['last_latency_ms']} ms")
+    st.caption(f"Sentry SDK: {'Installed (connection unverified)' if SENTRY_AVAILABLE else 'Not installed'}")
+    st.caption(f"Last AI latency: {tel['last_latency_ms']} ms (session counter)")
     st.caption(f"📡 Brain Calls: {tel['calls']} · Errors: {tel['errors']}")
     st.divider()
-    if st.button("🧹 Reset View & Cache", use_container_width=True):
+    if st.button("Clear current view", use_container_width=True):
         if nav_mode == "🎨 Specialist Rooms (4 AI Models)":
             data["messages"] = []
             data["last_reply"] = ""
@@ -1211,8 +1240,8 @@ if nav_mode == "📊 Executive Dashboard":
         """
         <div class="kawaii-header">
           <div>
-            <h1>EXECUTIVE COMMAND DASHBOARD<br><span style="color:#7e57c2;font-size:0.65em;">GLOBAL CSV SYNC · FEE SIMULATOR · EXPORTS · GAMIFICATION</span></h1>
-            <p>Upload shop CSV metrics once to instantly sync across all 4 AI Specialist Rooms, simulate marketplace fees, and export POs & Schedule C P&Ls.</p>
+            <h1>Your Seller Headquarters<br><span style="color:#7e57c2;font-size:0.65em;">YOUR SHOP AT A GLANCE · BUSINESS TOOLS · AI TEAM</span></h1>
+            <p>See how your shop is doing, find what needs attention, and get practical help from your four AI specialists.</p>
           </div>
           <div>
             <span class="kawaii-badge">⭐ XP: {XP_VAL} LVL 3</span>
@@ -1223,34 +1252,40 @@ if nav_mode == "📊 Executive Dashboard":
     )
 
     # Operable Interactive Kawaii Character & Building Cards Matching Your Exact Reference
-    st.markdown("### **🌸 Interactive Kawaii Headquarters**")
+    st.markdown("""<div class="premium-section"><span class="premium-eyebrow">Your little business village</span>
+        <h2>Choose a helper for today's goals</h2>
+        <p>Four cheerful shortcuts to your real shop tools and outputs.</p></div>""", unsafe_allow_html=True)
     kc1, kc2, kc3, kc4 = st.columns(4)
     with kc1:
-        if st.button("🐰 Bunny Painter\n\nRun TabPFN Inventory Forecast", use_container_width=True, type="primary"):
+        st.markdown("""<div class="premium-mascot premium-mascot--pink"><span class="premium-emoji">🐰</span><div><strong>Inventory Lab</strong><small>Review sales velocity and stock alerts</small></div></div>""", unsafe_allow_html=True)
+        if st.button("Run inventory check", use_container_width=True, type="primary"):
             add_xp(50)
             workspaces["Level 1: Inventory Lab"]["tabpfn_report"] = run_tabpfn_inventory_forecast(SAMPLE_SELLER_CSV, active_fee_rate)
-            st.success("🐰 Bunny Painter successfully generated your TabPFN EOQ Inventory Forecast! (+50 XP)")
+            st.success("🐰 Inventory estimate created! (+50 XP)")
     with kc2:
-        if st.button("🍞 Smiling Bread House\n\nGenerate Supplier PO", use_container_width=True, type="primary"):
+        st.markdown("""<div class="premium-mascot premium-mascot--yellow"><span class="premium-emoji">🍞</span><div><strong>Operations House</strong><small>Prepare a sample supplier purchase order</small></div></div>""", unsafe_allow_html=True)
+        if st.button("Generate purchase order", use_container_width=True, type="primary"):
             add_xp(50)
             workspaces["Level 3: Ops & PO Room"]["generated_po"] = generate_supplier_po(workspaces["Level 3: Ops & PO Room"])
             st.success("🍞 Smiling Bread House baked a fresh Purchase Order! (+50 XP)")
     with kc3:
-        if st.button("🐸 Mailbox Frog\n\nExport Listing CSV", use_container_width=True, type="primary"):
+        st.markdown("""<div class="premium-mascot premium-mascot--mint"><span class="premium-emoji">🐸</span><div><strong>Listing Studio</strong><small>Create a sample listing export</small></div></div>""", unsafe_allow_html=True)
+        if st.button("Create listing export", use_container_width=True, type="primary"):
             add_xp(50)
             workspaces["Level 2: Listing Studio"]["exported_listing_csv"] = generate_shopify_etsy_listing_csv("Artisan Ceramic Mug", f"{28.00*(1+active_fee_rate):.2f}", "Kitchen")
             st.success("🐸 Mailbox Frog delivered your bulk listing CSV export! (+50 XP)")
     with kc4:
-        if st.button("🐝 Honey Bee Scout\n\nCheck SerpApi Market", use_container_width=True, type="primary"):
+        st.markdown("""<div class="premium-mascot premium-mascot--blue"><span class="premium-emoji">🐝</span><div><strong>Market Scout</strong><small>Check comparable public product results</small></div></div>""", unsafe_allow_html=True)
+        if st.button("Research product prices", use_container_width=True, type="primary"):
             add_xp(50)
             st.success(fetch_serpapi_competitor_pricing("Hand-Poured Lavender Soy Candle"))
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<div class=\"premium-section\"><span class=\"premium-eyebrow\">Bring your own numbers</span><h2>Shop data &amp; planning</h2><p>Upload your CSV to make your dashboard and specialist tools more relevant.</p></div>", unsafe_allow_html=True)
 
     up_col1, up_col2 = st.columns([1.35, 1.0], gap="medium")
     with up_col1:
         uploaded_metrics = st.file_uploader(
-            "📂 Upload Global Shop CSV (Syncs Dashboard & All 4 AI Specialist Rooms)",
+            "Upload shop CSV · shared with all four specialist rooms",
             type=["csv"],
         )
         dl1, dl2, dl3 = st.columns(3)
@@ -1302,6 +1337,8 @@ if nav_mode == "📊 Executive Dashboard":
     sku_stock = [14, 8, 42, 5, 29, 6]
     sku_sales = [19, 9, 15, 11, 8, 14]
     active_inventory_csv = SAMPLE_SELLER_CSV
+    if uploaded_metrics is None:
+        st.markdown('<div class="premium-note">✦ Demo mode · Charts, KPIs and inventory currently use sample figures. Upload a CSV to analyze your own data.</div>', unsafe_allow_html=True)
 
     if uploaded_metrics is not None:
         try:
@@ -1388,6 +1425,7 @@ if nav_mode == "📊 Executive Dashboard":
             unsafe_allow_html=True,
         )
 
+    st.markdown('<div class="premium-section"><span class="premium-eyebrow">Your shop, in numbers</span><h2>Visual performance</h2></div>', unsafe_allow_html=True)
     render_dashboard_charts(
         periods,
         sales_fx,
@@ -1463,7 +1501,7 @@ if nav_mode == "📊 Executive Dashboard":
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-        with st.expander("🔮 TabPFN-3.5 EOQ Restock & Schedule C Summary", expanded=True):
+        with st.expander("📦 Inventory Estimate & Illustrative Financial Summary", expanded=True):
             st.markdown(run_tabpfn_inventory_forecast(active_inventory_csv, active_fee_rate))
 
 else:
@@ -1471,16 +1509,16 @@ else:
         f"""
         <div class="kawaii-header">
           <div>
-            <h1>SPECIALIST AI ROOMS<br><span style="color:#7e57c2;font-size:0.65em;">SUCCESS IS YOUR REALITY · {info['level']}</span></h1>
-            <p>Private AI back-office for Etsy, eBay &amp; Shopify. Globally synced with your dashboard CSV data. Talk to {info['name']} by voice or text.</p>
+            <h1>Meet Your AI Team<br><span style="color:#7e57c2;font-size:0.65em;">A LITTLE HELP MAKES BIG THINGS POSSIBLE · {info['level']}</span></h1>
+            <p>Your friendly specialist for shop decisions, seller data, and the next step. Ask {info['name']} by voice or text.</p>
             <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-              <span class="kawaii-badge">🎨 Active: {info['name']} ({mode})</span>
+              <span class="kawaii-badge">Your specialist: {info['name']}</span>
               <span class="kawaii-badge" style="background:#00e676;color:#2b2d42 !important;">🧠 {data['last_model_used']}</span>
               <span class="kawaii-badge">⭐ XP: {st.session_state['seller_xp']}</span>
             </div>
           </div>
           <div>
-            <span class="kawaii-badge" style="background:#00e676;color:#2b2d42 !important;">● SYNCED ACTIVE</span>
+            <span class="kawaii-badge" style="background:#00e676;color:#2b2d42 !important;">● WORKSPACE READY</span>
           </div>
         </div>
         """,
@@ -1491,7 +1529,7 @@ else:
 
     with col_left:
         st.markdown("#### 📦 Globally Synced Seller Data")
-        if st.button("🔮 Run TabPFN Forecast on Synced CSV", use_container_width=True, type="primary"):
+        if st.button("📦 Analyze Synced Inventory", use_container_width=True, type="primary"):
             data["tabpfn_report"] = run_tabpfn_inventory_forecast(data["file_text"], active_fee_rate)
             data["schedule_c_pl"] = generate_schedule_c_pl(data["file_text"], active_fee_rate)
             process_message(mode, data, "Review globally synced shop inventory and highlight top restock actions.", ref=True)
@@ -1508,7 +1546,7 @@ else:
                 st.rerun()
 
         if data.get("tabpfn_report"):
-            with st.expander("🔮 TabPFN EOQ Forecast", expanded=True):
+            with st.expander("📦 Inventory & Reorder Estimate", expanded=True):
                 st.markdown(data["tabpfn_report"])
         if data.get("schedule_c_pl"):
             with st.expander("📊 Schedule C P&L & Nexus"):
@@ -1521,7 +1559,7 @@ else:
                 st.code(data["exported_listing_csv"], language="csv")
 
     with col_center:
-        st.markdown(f"<div style='text-align:center; margin-bottom:6px;font-weight:800;color:#512da8;'><b>{info['name']}</b> · {info['level']}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='premium-avatar-title'>Meet {info['name']} · {info['level']}</div>", unsafe_allow_html=True)
         render_avatar(info, data)
 
     with col_right:
