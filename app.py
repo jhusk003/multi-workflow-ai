@@ -1,4 +1,6 @@
-﻿"""Seller Assist v12.1: Robust 8-Bit Retro Edition with Guaranteed Speak & Audio Controls.
+﻿"""Seller Assist v12.2: 8-Bit Retro Game Edition for Etsy, eBay & Shopify Sellers.
+Features: 4 Specialist Levels in Sidebar, WebGL Avatar with Accurate Lip & Blink Alignment,
+TabPFN-3.5 Forecasting, Schedule C P&L Generator, and Render Ready.
 """
 import asyncio
 import base64
