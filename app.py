@@ -534,6 +534,45 @@ with col_right:
                 st.markdown(m["content"])
                 st.caption(m["time"])
 
+    # Microphone Speech-to-Text Input
+    components.html("""
+    <div style="background:#111118;border:2px solid #00f0ff;padding:8px;border-radius:10px;display:flex;align-items:center;justify-content:space-between;box-shadow:2px 2px 0px #ff007f;">
+      <button id="micBtn" type="button" style="background:#ff007f;color:#fff;border:2px solid #fff;padding:6px 12px;font-family:'Press Start 2P',monospace;font-size:8.5px;cursor:pointer;box-shadow:2px 2px 0px #00f0ff;">🎙️ Speak to AI</button>
+      <span id="micStatus" style="font-size:10.5px;color:#00f0ff;font-weight:700;">Click mic & speak</span>
+    </div>
+    <script>
+      const micBtn = document.getElementById('micBtn');
+      const micStatus = document.getElementById('micStatus');
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        micStatus.textContent = "Mic not supported in browser";
+      } else {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+        micBtn.onclick = () => {
+          recognition.start();
+          micStatus.textContent = "Listening... Speak now!";
+          micBtn.style.background = "#00f0ff";
+          micBtn.style.color = "#111115";
+        };
+        recognition.onresult = (e) => {
+          const txt = e.results[0][0].transcript;
+          micStatus.textContent = "Heard: \\"" + txt + "\\"";
+          micBtn.style.background = "#ff007f";
+          micBtn.style.color = "#fff";
+          navigator.clipboard.writeText(txt);
+        };
+        recognition.onerror = () => { micStatus.textContent = "Mic error. Try again."; };
+        recognition.onend = () => {
+          micBtn.style.background = "#ff007f";
+          micBtn.style.color = "#fff";
+        };
+      }
+    </script>
+    """, height=50)
+
     with st.form(key=f"form_{mode}", clear_on_submit=True):
         prompt = st.text_area("Question", placeholder="Ask about stockouts, SEO, taxes...", height=85, label_visibility="collapsed")
         send = st.form_submit_button("Send Question →", type="primary", use_container_width=True)
@@ -541,3 +580,4 @@ with col_right:
         with st.spinner("Processing level..."):
             process_message(mode, data, prompt, ref=bool(data["file_text"]))
         st.rerun()
+
