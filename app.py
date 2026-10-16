@@ -820,7 +820,7 @@ AVATAR_HTML = r'''<!DOCTYPE html>
   
   // Adjusted landmark coordinates precisely centered over portrait face
   let landmarks = { 
-    mouthCenter: [0.50, 0.730], 
+    mouthCenter: [0.50, 0.685], 
     mouthWidth: 0.145, 
     leftEye: [0.395, 0.485], 
     rightEye: [0.605, 0.485], 
@@ -1039,3 +1039,4 @@ with col_right:
         with st.spinner("Thinking..."):
             process_message(mode, data, prompt, attach_reference=bool(data["file_text"]))
         st.rerun()
+
