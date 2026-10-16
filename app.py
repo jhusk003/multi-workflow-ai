@@ -120,7 +120,7 @@ st.markdown("""
 }
 
 .y2k-hero p {
-    color: #4b5563;
+    color: #111115; font-weight: 700;
     font-size: 0.95rem;
     margin: 0;
     font-weight: 600;
@@ -634,6 +634,7 @@ with col_right:
         send = st.form_submit_button("Send →", type="primary", use_container_width=True)
     if send and prompt.strip():
         with st.spinner("Thinking..."):
-            process_message(mode, data, prompt, attach_reference=bool(data["file_text"]))
+            process_message(mode, data, prompt, ref=bool(data["file_text"]))
         st.rerun()
+
 
