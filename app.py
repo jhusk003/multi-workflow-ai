@@ -1,5 +1,7 @@
-﻿"""Seller Assist v10.1: Production-Grade E-Commerce Back-Office for Etsy, eBay & Shopify Sellers.
-Safeguarded against startup crashes, missing keys, and headless binding issues.
+﻿"""Seller Assist v10.2: E-Commerce Back-Office Operating System for Etsy, eBay & Shopify Sellers.
+Features: Corrected WebGL Face Landmarks, Automated CSV Ingestion, TabPFN-3.5 Forecasting,
+1-Click Listing CSV Export, Schedule C P&L Generator, Supplier PO Generator, Sentry Audit Logs,
+Google Gemma 3, SerpApi Comps, ElevenLabs, and Render Ready.
 """
 import asyncio
 import base64
@@ -22,13 +24,12 @@ from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
 
-# Safe Sentry Initialization
-SENTRY_AVAILABLE = False
 try:
     import sentry_sdk
     SENTRY_AVAILABLE = True
 except ImportError:
     sentry_sdk = None
+    SENTRY_AVAILABLE = False
 
 st.set_page_config(page_title="Seller Assist · E-Commerce Operating System", page_icon="⚡", layout="wide")
 
@@ -212,7 +213,7 @@ div[data-testid="stForm"] {
 </style>
 """, unsafe_allow_html=True)
 
-STATE_KEY = "seller_assist_v101_workspaces"
+STATE_KEY = "seller_assist_v102_workspaces"
 TRACE_KEY = "seller_assist_sentry_traces"
 
 def new_workspace():
@@ -713,6 +714,9 @@ def render_avatar(assistant, workspace):
     components.html(AVATAR_HTML.replace("__PAYLOAD__", safe), height=635, scrolling=False)
 
 
+# =====================================================================
+# WEBGL AVATAR ENGINE WITH CORRECTED FACE LANDMARK ALIGNMENT
+# =====================================================================
 AVATAR_HTML = r'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -799,7 +803,7 @@ AVATAR_HTML = r'''<!DOCTYPE html>
       </div>
     </div>
     <audio id="voice" controls preload="auto"></audio>
-    <div class="status-bar"><span id="status">Initializing 60FPS WebGL true-parting lip engine…</span><span id="meter">Lip Range: Full Dynamic</span></div>
+    <div class="status-bar"><span id="status">Initializing 60FPS WebGL aligned facial engine…</span><span id="meter">Lip Range: Full Dynamic</span></div>
     <div id="caption"></div>
   </div>
 </div>
@@ -813,7 +817,15 @@ AVATAR_HTML = r'''<!DOCTYPE html>
   $('caption').textContent = C.text;
 
   const sound = $('voice'), dot = $('dot'), badgeState =$('badgeState');
-  let landmarks = { mouthCenter: [0.50, 0.655], mouthWidth: 0.145, leftEye: [0.395, 0.420], rightEye: [0.605, 0.420], eyeRadius: [0.048, 0.025] };
+  
+  // Adjusted landmark coordinates precisely centered over portrait face
+  let landmarks = { 
+    mouthCenter: [0.50, 0.730], 
+    mouthWidth: 0.145, 
+    leftEye: [0.395, 0.485], 
+    rightEye: [0.605, 0.485], 
+    eyeRadius: [0.048, 0.025] 
+  };
   
   const canvas = $('glCanvas'), gl = canvas.getContext('webgl', { alpha: false, antialias: true });
   const VERTEX_SHADER = `
