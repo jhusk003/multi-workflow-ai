@@ -1252,34 +1252,36 @@ if nav_mode == "📊 Executive Dashboard":
     )
 
     # Operable Interactive Kawaii Character & Building Cards Matching Your Exact Reference
-    st.markdown("""<div class="premium-section"><span class="premium-eyebrow">Your little business village</span>
-        <h2>Choose a helper for today's goals</h2>
-        <p>Four cheerful shortcuts to your real shop tools and outputs.</p></div>""", unsafe_allow_html=True)
-    kc1, kc2, kc3, kc4 = st.columns(4)
+    from illustrated_buttons import inject_illustrated_button_styles  # ILLUSTRATED SELLER HEADQUARTERS v18
+    inject_illustrated_button_styles()
+    st.markdown("""<div class="sa-village-intro"><div class="eyebrow">✿ Your little business village</div>
+    <h2>Pick a helper for your shop</h2><p>Tap a picture to run a real Seller Assist shortcut. Each one keeps its original working action.</p>
+    </div>""", unsafe_allow_html=True)
+    kc1, kc2 = st.columns(2, gap="medium")
+    kc3, kc4 = st.columns(2, gap="medium")
     with kc1:
-        st.markdown("""<div class="premium-mascot premium-mascot--pink"><span class="premium-emoji">🐰</span><div><strong>Inventory Lab</strong><small>Review sales velocity and stock alerts</small></div></div>""", unsafe_allow_html=True)
-        if st.button("Run inventory check", use_container_width=True, type="primary"):
+        if st.button('Inventory Lab — analyze sample inventory', key='sa_image_inventory', help='Analyze a sample inventory file and save the resulting stock report.', use_container_width=True, type="primary"):
             add_xp(50)
             workspaces["Level 1: Inventory Lab"]["tabpfn_report"] = run_tabpfn_inventory_forecast(SAMPLE_SELLER_CSV, active_fee_rate)
             st.success("🐰 Inventory estimate created! (+50 XP)")
+        st.markdown("<div class=\"sa-village-caption\">📦 Sample inventory & restock estimate</div>", unsafe_allow_html=True)
     with kc2:
-        st.markdown("""<div class="premium-mascot premium-mascot--yellow"><span class="premium-emoji">🍞</span><div><strong>Operations House</strong><small>Prepare a sample supplier purchase order</small></div></div>""", unsafe_allow_html=True)
-        if st.button("Generate purchase order", use_container_width=True, type="primary"):
+        if st.button('Packing Orders — create purchase order', key='sa_image_packing', help='Generate a sample supplier purchase order in Taylor’s workspace.', use_container_width=True, type="primary"):
             add_xp(50)
             workspaces["Level 3: Ops & PO Room"]["generated_po"] = generate_supplier_po(workspaces["Level 3: Ops & PO Room"])
             st.success("🍞 Smiling Bread House baked a fresh Purchase Order! (+50 XP)")
+        st.markdown("<div class=\"sa-village-caption\">📬 Sample supplier purchase order</div>", unsafe_allow_html=True)
     with kc3:
-        st.markdown("""<div class="premium-mascot premium-mascot--mint"><span class="premium-emoji">🐸</span><div><strong>Listing Studio</strong><small>Create a sample listing export</small></div></div>""", unsafe_allow_html=True)
-        if st.button("Create listing export", use_container_width=True, type="primary"):
+        if st.button('Listing Studio — export sample listing', key='sa_image_listing', help='Create a sample marketplace product listing CSV in Jordan’s workspace.', use_container_width=True, type="primary"):
             add_xp(50)
             workspaces["Level 2: Listing Studio"]["exported_listing_csv"] = generate_shopify_etsy_listing_csv("Artisan Ceramic Mug", f"{28.00*(1+active_fee_rate):.2f}", "Kitchen")
             st.success("🐸 Mailbox Frog delivered your bulk listing CSV export! (+50 XP)")
+        st.markdown("<div class=\"sa-village-caption\">🎨 Sample product listing export</div>", unsafe_allow_html=True)
     with kc4:
-        st.markdown("""<div class="premium-mascot premium-mascot--blue"><span class="premium-emoji">🐝</span><div><strong>Market Scout</strong><small>Check comparable public product results</small></div></div>""", unsafe_allow_html=True)
-        if st.button("Research product prices", use_container_width=True, type="primary"):
+        if st.button('Market Research — compare product prices', key='sa_image_market', help='Research candle prices. Live SerpApi results require a configured API key.', use_container_width=True, type="primary"):
             add_xp(50)
             st.success(fetch_serpapi_competitor_pricing("Hand-Poured Lavender Soy Candle"))
-
+        st.markdown("<div class=\"sa-village-caption\">🐝 Comparable-product research</div>", unsafe_allow_html=True)
     st.markdown("<div class=\"premium-section\"><span class=\"premium-eyebrow\">Bring your own numbers</span><h2>Shop data &amp; planning</h2><p>Upload your CSV to make your dashboard and specialist tools more relevant.</p></div>", unsafe_allow_html=True)
 
     up_col1, up_col2 = st.columns([1.35, 1.0], gap="medium")
