@@ -1,4 +1,4 @@
-"""Seller Assist v13.0: 8-Bit Retro Game Edition for Etsy, eBay & Shopify Sellers.
+"""Seller Assist v13.1: 8-Bit Retro Game Edition for Etsy, eBay & Shopify Sellers.
 Default Landing Page: Executive Dashboard with Interactive Graphs, CSV Metric Uploader,
 Daily/Monthly/Annual Budgets, Profit & Sales KPIs, Interactive To-Do List,
 SerpApi Live Competitor Tracker, TabPFN-3.5 EOQ Forecasting, Tax Nexus & Multi-Currency,
@@ -324,7 +324,6 @@ def run_tabpfn_inventory_forecast(csv_text):
         days_stockout = round(stock / velocity, 1)
         net_profit = price - cost - (price * 0.095)
         total_profit += net_profit * sales
-        # Economic Order Quantity (EOQ) with safety stock buffer
         eoq_units = max(12, int(round(velocity * (lead + 7))))
         if days_stockout <= lead:
             urgent_reorders.append(
@@ -612,7 +611,6 @@ DASHBOARD_CHARTS_HTML = r"""<!DOCTYPE html>
       ctx.fillText(String(label).slice(0, 6), gx, padT + ch + 16);
     });
 
-    // Daily Budget Target Line
     if (D.dailyBudget > 0) {
       const by = padT + ch - Math.min(ch, (D.dailyBudget / maxV) * ch);
       ctx.strokeStyle = '#ff007f';
@@ -1072,7 +1070,7 @@ MIC_HTML = r"""<!DOCTYPE html>
 # Sidebar Navigation — Executive Dashboard is Index 0 (Default Load-In Page)
 with st.sidebar:
     st.markdown("## 🕹️ Seller Assist")
-    st.caption("8-Bit Retro Game Edition · v13.0")
+    st.caption("8-Bit Retro Game Edition · v13.1")
     st.markdown("### **MAIN NAVIGATION**")
     nav_mode = st.radio(
         "Select View",
@@ -1120,7 +1118,6 @@ if nav_mode == "📊 Executive Dashboard":
         unsafe_allow_html=True,
     )
 
-    # Top Data Upload & Budget Configuration Bar
     up_col1, up_col2 = st.columns([1.35, 1.0], gap="medium")
     with up_col1:
         uploaded_metrics = st.file_uploader(
@@ -1173,7 +1170,6 @@ if nav_mode == "📊 Executive Dashboard":
             st.session_state["dash_budgets"]["monthly"] = monthly_budget_input
             st.session_state["dash_budgets"]["annual"] = annual_budget_input
 
-    # Default Dashboard Data
     periods = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     sales_vals = [1200.0, 1450.0, 1320.0, 1680.0, 1950.0, 2400.0, 2100.0]
     profit_vals = [780.0, 940.0, 850.0, 1100.0, 1280.0, 1560.0, 1370.0]
@@ -1225,7 +1221,6 @@ if nav_mode == "📊 Executive Dashboard":
         except Exception as e:
             st.error(f"Could not parse uploaded CSV: {e}")
 
-    # Convert to selected currency
     sales_fx = [round(v * fx_rate, 2) for v in sales_vals]
     profit_fx = [round(v * fx_rate, 2) for v in profit_vals]
     daily_budget_fx = st.session_state["dash_budgets"]["daily"] * fx_rate
@@ -1243,7 +1238,6 @@ if nav_mode == "📊 Executive Dashboard":
     annual_sales = daily_sales * 365.0
     margin_pct = round((total_profit_period / max(1.0, total_sales_period)) * 100, 1)
 
-    # 4 Top KPI Cards: Daily, Monthly, Annual Profit/Budget + Total Sales
     k1, k2, k3, k4 = st.columns(4)
     with k1:
         st.markdown(
@@ -1274,7 +1268,6 @@ if nav_mode == "📊 Executive Dashboard":
             unsafe_allow_html=True,
         )
 
-    # Guaranteed Interactive HTML5 Canvas Dual Graphs
     render_dashboard_charts(
         periods,
         sales_fx,
@@ -1286,7 +1279,6 @@ if nav_mode == "📊 Executive Dashboard":
         fx_sym,
     )
 
-    # Dashboard Lower Section: Left = Budgets + Tax Nexus + SerpApi | Right = Interactive To-Do List + EOQ Summary
     dash_left, dash_right = st.columns([1.25, 1.0], gap="medium")
 
     with dash_left:
@@ -1345,7 +1337,6 @@ if nav_mode == "📊 Executive Dashboard":
             st.markdown(run_tabpfn_inventory_forecast(active_inventory_csv))
 
 else:
-    # 4 AI Specialist Rooms View
     st.markdown(
         f"""
         <div class="pixel-header-box">
