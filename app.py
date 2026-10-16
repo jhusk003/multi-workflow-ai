@@ -1,7 +1,6 @@
-"""Seller Assist v14.0: Ultimate 8-Bit Retro Game Edition.
-Features: Global CSV Sync, SQLite Persistence, Marketplace Fee Simulator (Etsy/Shopify/eBay/Amazon),
-1-Click Downloadable Exports (PO, Schedule C, Listing CSV), 8-Bit XP Gamification, Dashboard Voice Command Bar,
-Executive Dashboard Default Landing Page, TabPFN-3.5 EOQ Forecasting, SerpApi Competitor Intel, and Sentry APM.
+"""Seller Assist v15.0: Cyberpunk Executive Edition.
+Visual Overhaul: Sleek Obsidian Dark Mode, Neon Cyan/Emerald Accents, Glassmorphic Panels,
+Global CSV Sync, SQLite Persistence, Marketplace Fee Simulator, 1-Click Exports, and XP Gamification.
 """
 import asyncio
 import base64
@@ -30,8 +29,8 @@ except ImportError:
     SENTRY_AVAILABLE = False
 
 st.set_page_config(
-    page_title="Seller Assist · Executive Dashboard & AI Rooms",
-    page_icon="🕹️",
+    page_title="Seller Assist · Executive Cyberpunk Edition",
+    page_icon="⚡",
     layout="wide",
 )
 
@@ -59,7 +58,7 @@ def db_load_budgets():
         "daily": data.get("daily", 950.0),
         "monthly": data.get("monthly", 28500.0),
         "annual": data.get("annual", 342000.0),
-        "xp": int(data.get("xp", 350))
+        "xp": int(data.get("xp", 400))
     }
 
 def db_save_budget(key, val):
@@ -150,14 +149,14 @@ ASSISTANTS = {
         "specialty": "TabPFN-3.5 inventory forecasting, EOQ reorder calculation, stockout prediction, safety stock, COGS, gross margin vs. markup.",
     },
     "Level 2: Listing Studio": {
-        "name": "Jordan", "level": "LEVEL 2", "color": "#ff007f",
+        "name": "Jordan", "level": "LEVEL 2", "color": "#39ff14",
         "voice": "en-US-AndrewNeural", "eleven_voice_id": "TxGEqnHWrfWFTfGW9XjX",
         "photo": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=900&q=85",
         "tone": "creative, persuasive and commercially sharp",
         "specialty": "Etsy/Shopify descriptions, 13-tag Etsy SEO, competitor benchmarking via SerpApi.",
     },
     "Level 3: Ops & PO Room": {
-        "name": "Taylor", "level": "LEVEL 3", "color": "#39ff14",
+        "name": "Taylor", "level": "LEVEL 3", "color": "#7928ca",
         "voice": "en-US-ChristopherNeural", "eleven_voice_id": "pNInz6obpgDQGcFmaJgB",
         "photo": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=85",
         "tone": "organized, decisive and practical",
@@ -174,17 +173,17 @@ ASSISTANTS = {
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
 
 .stApp {
-    background: linear-gradient(180deg, #1b1130 0%, #2a1b4e 45%, #ffb6c1 100%);
-    color: #111115;
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: radial-gradient(circle at 50% 0%, #13131f 0%, #09090e 65%);
+    color: #f3f4f6;
+    font-family: 'Outfit', system-ui, sans-serif;
 }
 
 [data-testid="stSidebar"] {
-    background: #111118 !important;
-    border-right: 3px solid #00f0ff;
+    background: #0d0d12 !important;
+    border-right: 1px solid rgba(0, 240, 255, 0.2);
     color: #ffffff !important;
 }
 
@@ -192,23 +191,23 @@ st.markdown("""
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] span,
 [data-testid="stSidebar"] label {
-    color: #ffffff !important;
-    font-weight: 700 !important;
+    color: #e2e8f0 !important;
+    font-weight: 600 !important;
 }
 
 .block-container {
-    padding-top: 1.2rem !important;
-    padding-bottom: 2rem !important;
-    max-width: 97vw !important;
+    padding-top: 1.5rem !important;
+    padding-bottom: 2.5rem !important;
+    max-width: 98vw !important;
 }
 
-.pixel-header-box {
-    background: #111118;
-    border: 3px solid #ff007f;
-    border-radius: 12px;
-    padding: 20px 24px;
-    margin-bottom: 20px;
-    box-shadow: 6px 6px 0px #00f0ff;
+.cyber-header {
+    background: linear-gradient(135deg, rgba(19, 19, 31, 0.95), rgba(13, 13, 18, 0.98));
+    border: 1px solid rgba(0, 240, 255, 0.35);
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -216,104 +215,121 @@ st.markdown("""
     gap: 16px;
 }
 
-.pixel-header-box h1 {
-    font-family: 'Press Start 2P', monospace;
-    font-size: clamp(1.05rem, 1.9vw, 1.55rem);
+.cyber-header h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(1.1rem, 2vw, 1.6rem);
     color: #00f0ff;
-    margin: 0 0 8px 0;
-    line-height: 1.4;
-    text-shadow: 2px 2px #ff007f;
+    margin: 0 0 6px 0;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    text-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
 }
 
-.pixel-header-box p {
-    color: #ffffff;
+.cyber-header p {
+    color: #94a3b8;
     font-size: 0.95rem;
     margin: 0;
-    font-weight: 600;
+    font-weight: 500;
 }
 
-.pixel-badge {
-    background: #ff007f;
-    color: #ffffff !important;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 0.58rem;
-    padding: 8px 13px;
-    border: 2px solid #ffffff;
-    box-shadow: 3px 3px 0px #00f0ff;
+.cyber-badge {
+    background: rgba(0, 240, 255, 0.1);
+    color: #00f0ff !important;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 8px 14px;
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    border-radius: 8px;
     display: inline-block;
+    font-weight: 700;
 }
 
-.pixel-card {
-    background: #111118;
-    border: 3px solid #00f0ff;
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 14px;
-    box-shadow: 5px 5px 0px #ff007f;
-    color: #ffffff;
+.cyber-card {
+    background: rgba(19, 19, 31, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
 }
 
-.pixel-card h4 {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 0.68rem;
-    color: #00f0ff;
+.cyber-card:hover {
+    border-color: rgba(0, 240, 255, 0.3);
+    box-shadow: 0 12px 32px rgba(0, 240, 255, 0.15);
+}
+
+.cyber-card h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     margin: 0 0 10px 0;
 }
 
-.pixel-card .big-num {
-    font-size: 1.55rem;
-    font-weight: 800;
+.cyber-card .big-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #f8fafc;
     margin: 0 0 6px 0;
 }
 
-.pixel-card small {
-    color: #cbd5e1;
-    font-size: 0.8rem;
+.cyber-card small {
+    color: #64748b;
+    font-size: 0.82rem;
     font-weight: 600;
 }
 
-.pixel-panel {
-    background: #ffffff;
-    border: 3px solid #111115;
-    border-radius: 14px;
-    padding: 16px;
-    margin-bottom: 16px;
-    box-shadow: 5px 5px 0px #ff007f;
-    color: #111115;
+.cyber-panel {
+    background: rgba(19, 19, 31, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .stButton > button[kind="primary"],
 div[data-testid="stFormSubmitButton"] > button {
-    background: #ff007f !important;
-    color: #ffffff !important;
-    border: 2px solid #111115 !important;
-    border-radius: 0px !important;
-    font-family: 'Press Start 2P', monospace !important;
-    font-size: 0.6rem !important;
-    padding: 12px 16px !important;
-    box-shadow: 3px 3px 0px #00f0ff !important;
+    background: linear-gradient(135deg, #00f0ff, #0072ff) !important;
+    color: #09090e !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    padding: 12px 20px !important;
+    box-shadow: 0 4px 16px rgba(0, 240, 255, 0.3) !important;
+    transition: transform 0.1s ease !important;
+}
+
+.stButton > button[kind="primary"]:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 240, 255, 0.5) !important;
 }
 
 .stButton > button[kind="secondary"] {
-    background: #ffffff !important;
-    color: #111115 !important;
-    border: 2px solid #111115 !important;
-    border-radius: 0px !important;
-    font-weight: 700 !important;
-    box-shadow: 3px 3px 0px #00f0ff !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #f3f4f6 !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
 }
 
 div[data-testid="stForm"] {
-    background: #ffffff;
-    border: 3px solid #111115;
-    border-radius: 14px;
-    padding: 14px;
-    box-shadow: 5px 5px 0px #ff007f;
+    background: rgba(19, 19, 31, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 18px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-STATE_KEY = "seller_assist_8bit_workspaces"
+STATE_KEY = "seller_assist_cyber_workspaces"
 
 def new_workspace():
     return {
@@ -335,7 +351,7 @@ def ensure_workspaces(session):
     if "seller_xp" not in session:
         session["seller_xp"] = db_b["xp"]
     if "telemetry" not in session:
-        session["telemetry"] = {"calls": 18, "last_latency_ms": 210, "errors": 0}
+        session["telemetry"] = {"calls": 22, "last_latency_ms": 195, "errors": 0}
     return session[STATE_KEY]
 
 workspaces = ensure_workspaces(st.session_state)
@@ -357,11 +373,11 @@ def fetch_serpapi_competitor_pricing(query):
     key = secret("SERPAPI_API_KEY")
     if not key:
         return (
-            f"### 🔍 Market Benchmark for **{query}** *(Instant Reference Mode)*\n"
+            f"### 🔍 Market Intelligence Benchmark: **{query}**\n"
             "- **Etsy Bestseller Avg:** `$24.00` · Free shipping eligible\n"
             "- **Shopify Boutique Median:** `$26.50` · 68% gross margin\n"
             "- **Amazon Handmade Range:** `$19.99 – $29.99`\n"
-            "- **Recommendation:** Position at **`$24.50`** with bundle discount at 2+ units to maximize conversion and margin."
+            "- **AI Recommendation:** Position at **`$24.50`** with multi-unit bundle discounts to maximize conversion."
         )
     try:
         url = f"https://serpapi.com/search.json?engine=google_shopping&q={urllib.parse.quote(query)}&api_key={key}"
@@ -371,7 +387,7 @@ def fetch_serpapi_competitor_pricing(query):
         results = payload.get("shopping_results", [])
         if not results:
             return f"No live shopping results found for '{query}'."
-        lines = [f"### 🔍 Live SerpApi Google Shopping Results for '{query}':"]
+        lines = [f"### 🔍 Live SerpApi Results for '{query}':"]
         for item in results[:5]:
             title = item.get("title", "Product")
             price = item.get("price", "N/A")
@@ -410,26 +426,8 @@ def run_tabpfn_inventory_forecast(csv_text, fee_rate=0.095):
         sku_forecasts.append(f"| {sku} | {name[:18]} | {int(stock)} | {days_stockout}d | {eoq_units}u | ${net_profit:.2f} |")
     return (
         f"### 🔮 TabPFN-3.5 Forecast & EOQ Restock Plan\n"
-        f"- **Weekly Net Profit:** `${total_profit:,.2f}`\n\n"
-        "| SKU | Item | Stock | Horizon | EOQ Order | Unit Net |\n|---|---|---|---|---|---|\n"
-        + "\n".join(sku_forecasts)
-        + "\n\n#### 🚨 Urgent EOQ Reorder Alerts:\n"
-        + "\n".join(urgent_reorders or ["- All stock levels exceed supplier lead times."])
-    )
-
-def generate_schedule_c_pl(csv_text, fee_rate=0.095):
-    rows = list(csv.DictReader(io.StringIO(csv_text)))
-    rev = sum(float(r.get("retail_price_usd", 20)) * float(r.get("weekly_units_sold", 7)) for r in rows) if rows else 4850.0
-    cogs, fees = rev * 0.30, rev * fee_rate
-    net = rev - cogs - fees
-    annualized_rev = rev * 52.0
-    nexus_flag = "⚠️ Over $100k Annualized Economic Nexus Threshold" if annualized_rev >= 100000 else "✅ Under $100k Economic Nexus Threshold"
-    return (
-        f"### 📊 Schedule C P&L & Nexus Summary\n"
-        f"- **Weekly Gross Sales:** `${rev:,.2f}` (*Annualized: `${annualized_rev:,.2f}`*)\n"
-        f"- **COGS (Line 4):** `${cogs:,.2f}`\n"
-        f"- **Marketplace Fees (Line 10):** `${fees:,.2f}`\n"
-        f"- **Net Profit (Line 31):** **`${net:,.2f}`**\n"
+        f"- **Weekly Net Profit:** `${total_profit:,.2f}`\n\n" "\vert{} SKU \vert{} Item \vert{} Stock \vert{} Horizon \vert{} EOQ Order \vert{} Unit Net \vert{}\n\vert{}---\vert{}---\vert{}---\vert{}---\vert{}---\vert{}---\vert{}\n" + "\n".join(sku_forecasts) + "\n\n#### 🚨 Urgent EOQ Reorder Alerts:\n" + "\n".join(urgent_reorders or ["- All stock levels exceed supplier lead times."]) )  def generate_schedule_c_pl(csv_text, fee_rate=0.095): rows = list(csv.DictReader(io.StringIO(csv_text))) rev = sum(float(r.get("retail_price_usd", 20)) * float(r.get("weekly_units_sold", 7)) for r in rows) if rows else 4850.0 cogs, fees = rev * 0.30, rev * fee_rate net = rev - cogs - fees annualized_rev = rev * 52.0 nexus_flag = "⚠️ Over $100k Annualized Economic Nexus Threshold" if annualized_rev >= 100000 else "✅ Under $100k Economic Nexus Threshold" return ( f"### 📊 Schedule C P&L & Nexus Summary\n" f"- **Weekly Gross Sales:** `${rev:,.2f}` (*Annualized: `${annualized_rev:,.2f}`*)\n" f"- **COGS (Line 4):** `${cogs:,.2f}`\n"
+        f"- **Marketplace Fees (Line 10):** `${fees:,.2f}`\n" f"- **Net Profit (Line 31):** **`${net:,.2f}`**\n"
         f"- **Sales-Tax Nexus Status:** {nexus_flag}"
     )
 
@@ -453,7 +451,7 @@ def run_ai(mode, workspace, prompt, reference=""):
     t0 = time.time()
     ast = ASSISTANTS[mode]
     sys = (
-        f"You are {ast['name']}, the {mode} specialist in Seller Assist (8-bit pixel game edition), "
+        f"You are {ast['name']}, the {mode} specialist in Seller Assist (Cyberpunk Edition), "
         f"speaking in a {ast['tone']} style. {ast['specialty']} "
         "Give concise, actionable answers with exact figures and SKU numbers."
     )
@@ -527,7 +525,7 @@ def run_ai(mode, workspace, prompt, reference=""):
     return (
         f"Here is {ast['name']}'s analysis for **{prompt}**:\n\n"
         "- **Urgent Stockout Priority:** SKU `SLR-104` (Linen Cross-Back Apron) has only **3.2 days** of stock left against a 12-day lead time (EOQ Reorder: **30 units**), and `SLR-106` (Ceramic Matcha Whisk Holder) has **3.0 days** left (EOQ Reorder: **28 units**).\n"
-        "- **Profit & Margin Leader:** `SLR-102` (Walnut Cutting Board) generates **$40.99 net profit per unit** after the marketplace fee, driving $368.91/week.\n"
+        "- **Profit & Margin Leader:** `SLR-102` (Walnut Cutting Board) generates **$40.99 net profit per unit** after marketplace fees, driving $368.91/week.\n"
         "- **Next Step:** Click **📋 Generate PO** or **🏷️ Export CSV** on the left panel to execute this workflow."
     )
 
@@ -595,20 +593,21 @@ DASHBOARD_CHARTS_HTML = r"""<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: transparent; font-family: 'Plus Jakarta Sans', sans-serif; color: #fff; overflow: hidden; }
-  .grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 14px; height: 350px; }
+  body { background: transparent; font-family: 'Outfit', sans-serif; color: #f3f4f6; overflow: hidden; }
+  .grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 16px; height: 350px; }
   .card {
-    background: #111118; border: 3px solid #00f0ff; border-radius: 14px;
-    padding: 14px; box-shadow: 5px 5px 0px #ff007f; display: flex; flex-direction: column;
+    background: rgba(19, 19, 31, 0.85); backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 240, 255, 0.25); border-radius: 16px;
+    padding: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); display: flex; flex-direction: column;
   }
-  .title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .title { font-family: 'Press Start 2P', monospace; font-size: 10px; color: #00f0ff; }
-  .legend { display: flex; gap: 10px; font-size: 11px; font-weight: 700; }
-  .dot { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: middle; }
-  canvas { width: 100%; height: 285px; display: block; }
+  .title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .title { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #00f0ff; letter-spacing: -0.2px; }
+  .legend { display: flex; gap: 12px; font-size: 11px; font-weight: 600; color: #94a3b8; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+  canvas { width: 100%; height: 280px; display: block; }
 </style>
 </head>
 <body>
@@ -629,7 +628,7 @@ DASHBOARD_CHARTS_HTML = r"""<!DOCTYPE html>
       <span class="title">📦 STOCK vs. WEEKLY VELOCITY</span>
       <div class="legend">
         <span><i class="dot" style="background:#ffe600;"></i>Stock</span>
-        <span><i class="dot" style="background:#ff007f;"></i>Weekly Sold</span>
+        <span><i class="dot" style="background:#ff007f;"></i>Sold</span>
       </div>
     </div>
     <canvas id="skuCanvas"></canvas>
@@ -657,22 +656,22 @@ DASHBOARD_CHARTS_HTML = r"""<!DOCTYPE html>
     const allVals = [...D.sales, ...D.profit, D.dailyBudget * 1.1, 100];
     const maxV = Math.max(...allVals) * 1.12;
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-    ctx.fillStyle = '#9ca3af';
-    ctx.font = '600 10px Plus Jakarta Sans';
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillStyle = '#64748b';
+    ctx.font = '500 10px JetBrains Mono';
     for (let i = 0; i <= 4; i++) {
       const y = padT + ch - (i / 4) * ch;
       ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + cw, y); ctx.stroke();
       const val = Math.round((i / 4) * maxV);
-      ctx.fillText(D.sym + val, 6, y + 3);
+      ctx.fillText(D.sym + val, 4, y + 3);
     }
 
     const n = Math.max(1, D.periods.length);
     const groupW = cw / n;
-    const barW = Math.min(22, groupW * 0.32);
+    const barW = Math.min(20, groupW * 0.34);
 
     D.periods.forEach((label, i) => {
-      const gx = padL + i * groupW + groupW * 0.18;
+      const gx = padL + i * groupW + groupW * 0.16;
       const sVal = D.sales[i] || 0;
       const pVal = D.profit[i] || 0;
       const sH = (sVal / maxV) * ch;
@@ -682,45 +681,45 @@ DASHBOARD_CHARTS_HTML = r"""<!DOCTYPE html>
       ctx.fillRect(gx, padT + ch - sH, barW, sH);
 
       ctx.fillStyle = '#39ff14';
-      ctx.fillRect(gx + barW + 4, padT + ch - pH, barW, pH);
+      ctx.fillRect(gx + barW + 3, padT + ch - pH, barW, pH);
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '700 10px Plus Jakarta Sans';
-      ctx.fillText(String(label).slice(0, 6), gx, padT + ch + 16);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '600 10px Outfit';
+      ctx.fillText(String(label).slice(0, 6), gx, padT + ch + 18);
     });
 
     if (D.dailyBudget > 0) {
       const by = padT + ch - Math.min(ch, (D.dailyBudget / maxV) * ch);
       ctx.strokeStyle = '#ff007f';
-      ctx.lineWidth = 2.5;
-      ctx.setLineDash([6, 4]);
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
       ctx.beginPath(); ctx.moveTo(padL, by); ctx.lineTo(padL + cw, by); ctx.stroke();
       ctx.setLineDash([]);
       ctx.fillStyle = '#ff007f';
-      ctx.font = '700 10px Plus Jakarta Sans';
-      ctx.fillText('Budget Target: ' + D.sym + Math.round(D.dailyBudget), padL + 8, Math.max(14, by - 6));
+      ctx.font = '700 10px JetBrains Mono';
+      ctx.fillText('Target: ' + D.sym + Math.round(D.dailyBudget), padL + 8, Math.max(14, by - 6));
     }
   }
 
   function drawSkuChart() {
     const { ctx, w, h } = setupCanvas('skuCanvas');
     ctx.clearRect(0, 0, w, h);
-    const padL = 40, padR = 14, padT = 18, padB = 34;
+    const padL = 38, padR = 14, padT = 18, padB = 34;
     const cw = w - padL - padR, ch = h - padT - padB;
     const maxV = Math.max(...D.skuStock, ...D.skuSales, 20) * 1.15;
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-    ctx.fillStyle = '#9ca3af';
-    ctx.font = '600 10px Plus Jakarta Sans';
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillStyle = '#64748b';
+    ctx.font = '500 10px JetBrains Mono';
     for (let i = 0; i <= 4; i++) {
       const y = padT + ch - (i / 4) * ch;
       ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + cw, y); ctx.stroke();
-      ctx.fillText(Math.round((i / 4) * maxV) + 'u', 6, y + 3);
+      ctx.fillText(Math.round((i / 4) * maxV) + 'u', 4, y + 3);
     }
 
     const n = Math.max(1, D.skuLabels.length);
     const groupW = cw / n;
-    const barW = Math.min(18, groupW * 0.32);
+    const barW = Math.min(16, groupW * 0.34);
 
     D.skuLabels.forEach((sku, i) => {
       const gx = padL + i * groupW + groupW * 0.16;
@@ -735,9 +734,9 @@ DASHBOARD_CHARTS_HTML = r"""<!DOCTYPE html>
       ctx.fillStyle = '#ff007f';
       ctx.fillRect(gx + barW + 3, padT + ch - slH, barW, slH);
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '700 9.5px Plus Jakarta Sans';
-      ctx.fillText(String(sku).slice(0, 7), gx - 2, padT + ch + 16);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '600 9.5px Outfit';
+      ctx.fillText(String(sku).slice(0, 7), gx - 2, padT + ch + 18);
     });
   }
 
@@ -766,32 +765,32 @@ AVATAR_HTML = r"""<!DOCTYPE html>
 <style>
   :root { --accent: #00f0ff; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { color: #111115; background: transparent; font: 12px 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
+  body { color: #f3f4f6; background: transparent; font: 12px 'Outfit', sans-serif; overflow: hidden; }
   .panel {
-    height: 625px; border: 3px solid #00f0ff; border-radius: 16px; overflow: hidden;
-    background: #111118; display: flex; flex-direction: column; box-shadow: 5px 5px 0px #ff007f;
+    height: 625px; border: 1px solid rgba(0, 240, 255, 0.3); border-radius: 16px; overflow: hidden;
+    background: rgba(19, 19, 31, 0.95); display: flex; flex-direction: column; box-shadow: 0 12px 32px rgba(0,0,0,0.5);
   }
-  .stage { height: 445px; position: relative; background: radial-gradient(circle at 50% 35%, #2a1b4e, #0b0714); overflow: hidden; }
+  .stage { height: 445px; position: relative; background: radial-gradient(circle at 50% 35%, #1f1b36, #09090e); overflow: hidden; }
   #glCanvas { width: 100%; height: 100%; display: block; }
   .plate {
-    position: absolute; top: 12px; left: 12px; border: 2px solid #00f0ff; background: #111118; color: #ffffff;
-    padding: 5px 12px; font-weight: 800; font-size: 11px; box-shadow: 2px 2px 0px #ff007f;
+    position: absolute; top: 12px; left: 12px; border: 1px solid rgba(0, 240, 255, 0.4); background: rgba(13, 13, 18, 0.85); color: #00f0ff;
+    padding: 6px 14px; font-weight: 700; font-size: 11px; border-radius: 8px; font-family: 'JetBrains Mono', monospace;
   }
   .live-pill {
-    position: absolute; top: 12px; right: 12px; background: #ff007f; color: #ffffff;
-    border: 2px solid #ffffff; padding: 4px 10px; font-size: 10px; font-weight: 700;
+    position: absolute; top: 12px; right: 12px; background: rgba(57, 255, 20, 0.15); color: #39ff14;
+    border: 1px solid rgba(57, 255, 20, 0.4); padding: 5px 12px; font-size: 10px; font-weight: 700; border-radius: 8px;
   }
-  .controls { padding: 10px 14px; display: flex; flex-direction: column; gap: 7px; background: #111118; border-top: 3px solid #00f0ff; }
-  .buttons { display: flex; gap: 6px; justify-content: space-between; align-items: center; }
+  .controls { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; background: #0d0d12; border-top: 1px solid rgba(255,255,255,0.08); }
+  .buttons { display: flex; gap: 8px; justify-content: space-between; align-items: center; }
   button {
-    border: 2px solid #111115; background: #00f0ff; color: #111115; font-weight: 800;
-    font-size: 11px; cursor: pointer; padding: 6px 12px; box-shadow: 2px 2px 0px #ff007f;
+    border: none; background: linear-gradient(135deg, #00f0ff, #0072ff); color: #09090e; font-weight: 700;
+    font-size: 11px; cursor: pointer; padding: 8px 14px; border-radius: 8px; font-family: 'JetBrains Mono', monospace;
   }
-  button:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0px #ff007f; }
-  button.alt { background: #2a1b4e; color: #ffffff; border-color: #00f0ff; }
-  #voice { height: 32px; width: 100%; accent-color: #00f0ff; }
-  .status-bar { display: flex; justify-content: space-between; font-size: 10.5px; color: #9ca3af; font-weight: 600; }
-  #caption { font-size: 11px; color: #ffffff; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+  button:hover { opacity: 0.9; }
+  button.alt { background: rgba(255,255,255,0.08); color: #f3f4f6; border: 1px solid rgba(255,255,255,0.15); }
+  #voice { height: 30px; width: 100%; accent-color: #00f0ff; }
+  .status-bar { display: flex; justify-content: space-between; font-size: 10.5px; color: #94a3b8; font-weight: 600; }
+  #caption { font-size: 11.5px; color: #f3f4f6; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
 </style>
 </head>
 <body>
@@ -799,17 +798,17 @@ AVATAR_HTML = r"""<!DOCTYPE html>
   <div class="stage">
     <canvas id="glCanvas"></canvas>
     <div class="plate" id="plate"></div>
-    <div class="live-pill">♥ ♥ ♥ LIVE</div>
+    <div class="live-pill">● LIVE APM</div>
   </div>
   <div class="controls">
     <div class="buttons">
-      <div style="display:flex;gap:6px;">
+      <div style="display:flex;gap:8px;">
         <button id="speak" type="button">▶ Play Audio Voice</button>
         <button class="alt" id="stop" type="button">■ Stop</button>
       </div>
     </div>
     <audio id="voice" controls preload="auto"></audio>
-    <div class="status-bar"><span id="status">Audio Ready</span><span>WebGL Shader Active</span></div>
+    <div class="status-bar"><span id="status">Audio Ready</span><span>Neural Shader Active</span></div>
     <div id="caption"></div>
   </div>
 </div>
@@ -904,7 +903,7 @@ AVATAR_HTML = r"""<!DOCTYPE html>
     let targetOpen = isSpeaking ? (0.5 + 0.4*Math.sin(now*0.02)) : 0;
     mouthOpen += (targetOpen - mouthOpen)*0.3;
 
-    gl.clearColor(0.1, 0.07, 0.18, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clearColor(0.05, 0.05, 0.08, 1); gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform1f(U.uTime, now*0.001); gl.uniform1f(U.uZoom, 1.0);
     gl.uniform2f(U.uHeadSway, Math.sin(now*0.001)*0.004, Math.cos(now*0.002)*0.003);
     gl.uniform2f(U.uCanvasSize, canvas.width, canvas.height); gl.uniform1f(U.uMediaAspect, img.naturalWidth/Math.max(1,img.naturalHeight));
@@ -958,37 +957,38 @@ MIC_HTML = r"""<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Plus+Jakarta+Sans:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: transparent; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif; }
+  body { background: transparent; overflow: hidden; font-family: 'Outfit', sans-serif; }
   .mic-bar {
-    background: #111118;
-    border: 2px solid #00f0ff;
-    padding: 8px 10px;
+    background: rgba(19, 19, 31, 0.9);
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    padding: 8px 12px;
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    box-shadow: 2px 2px 0px #ff007f;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
   }
   #micBtn {
-    background: #ff007f;
-    color: #ffffff;
-    border: 2px solid #ffffff;
-    padding: 7px 12px;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 8.5px;
+    background: linear-gradient(135deg, #00f0ff, #0072ff);
+    color: #09090e;
+    border: none;
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
     cursor: pointer;
-    box-shadow: 2px 2px 0px #00f0ff;
+    border-radius: 6px;
     white-space: nowrap;
   }
-  #micBtn:active { transform: translate(1px, 1px); }
+  #micBtn:active { transform: scale(0.98); }
   #micStatus {
     font-size: 11px;
     color: #00f0ff;
-    font-weight: 700;
-    margin-left: 10px;
+    font-weight: 600;
+    margin-left: 12px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1084,8 +1084,8 @@ MIC_HTML = r"""<!DOCTYPE html>
       isListening = true;
       micStatus.textContent = '🔴 Listening... Speak now!';
       micBtn.textContent = '⏹️ Stop & Send';
-      micBtn.style.background = '#00f0ff';
-      micBtn.style.color = '#111115';
+      micBtn.style.background = '#ff0055';
+      micBtn.style.color = '#fff';
     };
 
     recognition.onresult = (e) => {
@@ -1104,7 +1104,7 @@ MIC_HTML = r"""<!DOCTYPE html>
         hasSubmitted = true;
         micStatus.textContent = 'Submitting: ' + latestTranscript;
         micBtn.style.background = '#39ff14';
-        micBtn.style.color = '#111115';
+        micBtn.style.color = '#09090e';
         setChatTextareaValue(latestTranscript, true);
       }
     };
@@ -1113,8 +1113,6 @@ MIC_HTML = r"""<!DOCTYPE html>
       isListening = false;
       micStatus.textContent = 'Mic error (' + e.error + '). Click to retry.';
       micBtn.textContent = '🎙️ Speak to AI';
-      micBtn.style.background = '#ff007f';
-      micBtn.style.color = '#ffffff';
     };
 
     recognition.onend = () => {
@@ -1123,13 +1121,11 @@ MIC_HTML = r"""<!DOCTYPE html>
       if (latestTranscript && !hasSubmitted) {
         hasSubmitted = true;
         micStatus.textContent = 'Submitting: ' + latestTranscript;
-        micBtn.style.background = '#39ff14';
-        micBtn.style.color = '#111115';
         setChatTextareaValue(latestTranscript, true);
       }
       setTimeout(() => {
-        micBtn.style.background = '#ff007f';
-        micBtn.style.color = '#ffffff';
+        micBtn.style.background = 'linear-gradient(135deg, #00f0ff, #0072ff)';
+        micBtn.style.color = '#09090e';
       }, 1500);
     };
 
@@ -1147,12 +1143,12 @@ MIC_HTML = r"""<!DOCTYPE html>
 
 # Sidebar Navigation with Gamification & Global Settings
 with st.sidebar:
-    st.markdown("## 🕹️ Seller Assist")
-    st.caption(f"8-Bit Retro Edition · XP: {st.session_state['seller_xp']} ⭐")
+    st.markdown("## ⚡ SELLER ASSIST")
+    st.caption(f"Cyberpunk Edition · XP: {st.session_state['seller_xp']} ⭐")
     st.markdown("### **MAIN NAVIGATION**")
     nav_mode = st.radio(
         "Select View",
-        ["📊 Executive Dashboard", "🕹️ Specialist Rooms (4 AI Models)"],
+        ["📊 Executive Dashboard", "🤖 Specialist Rooms (4 AI Models)"],
         index=0,
         key="nav_selector",
         label_visibility="collapsed",
@@ -1164,7 +1160,7 @@ with st.sidebar:
     market_choice = st.selectbox("🏷️ Marketplace Fee Model", list(MARKETPLACE_FEES.keys()), index=0)
     active_fee_rate = MARKETPLACE_FEES[market_choice]
 
-    if nav_mode == "🕹️ Specialist Rooms (4 AI Models)":
+    if nav_mode == "🤖 Specialist Rooms (4 AI Models)":
         st.markdown("### **CHOOSE AI LEVEL**")
         mode = st.radio("Select Level", list(ASSISTANTS), key="bit_mode", label_visibility="collapsed")
         info = ASSISTANTS[mode]
@@ -1178,7 +1174,7 @@ with st.sidebar:
     st.caption(f"📡 Brain Calls: {tel['calls']} · Errors: {tel['errors']}")
     st.divider()
     if st.button("🧹 Reset View & Cache", use_container_width=True):
-        if nav_mode == "🕹️ Specialist Rooms (4 AI Models)":
+        if nav_mode == "🤖 Specialist Rooms (4 AI Models)":
             data["messages"] = []
             data["last_reply"] = ""
         st.rerun()
@@ -1186,13 +1182,13 @@ with st.sidebar:
 if nav_mode == "📊 Executive Dashboard":
     st.markdown(
         """
-        <div class="pixel-header-box">
+        <div class="cyber-header">
           <div>
             <h1>EXECUTIVE COMMAND DASHBOARD<br><span style="color:#00f0ff;font-size:0.62em;">GLOBAL CSV SYNC · FEE SIMULATOR · EXPORTS · GAMIFICATION</span></h1>
             <p>Upload shop CSV metrics once to instantly sync across all 4 AI Specialist Rooms, simulate marketplace fees, and export POs & Schedule C P&Ls.</p>
           </div>
           <div>
-            <span class="pixel-badge" style="background:#111118;color:#39ff14 !important;border-color:#39ff14;">⭐ XP: {XP_VAL} LVL 3</span>
+            <span class="cyber-badge">⭐ XP: {XP_VAL} LVL 3</span>
           </div>
         </div>
         """.replace("{XP_VAL}", str(st.session_state["seller_xp"])),
@@ -1313,29 +1309,29 @@ if nav_mode == "📊 Executive Dashboard":
     k1, k2, k3, k4 = st.columns(4)
     with k1:
         st.markdown(
-            f'<div class="pixel-card"><h4>📅 DAILY PROFIT & BUDGET</h4>'
-            f'<div class="big-num" style="color:#ff007f;">{fx_sym}{daily_profit:,.2f}</div>'
+            f'<div class="cyber-card"><h4>📅 DAILY PROFIT & BUDGET</h4>'
+            f'<div class="big-num" style="color:#00f0ff;">{fx_sym}{daily_profit:,.2f}</div>'
             f'<small>Sales: {fx_sym}{daily_sales:,.2f} · Budget: {fx_sym}{daily_budget_fx:,.0f}/day</small></div>',
             unsafe_allow_html=True,
         )
     with k2:
         st.markdown(
-            f'<div class="pixel-card"><h4>🗓️ MONTHLY PROFIT & BUDGET</h4>'
-            f'<div class="big-num" style="color:#00f0ff;">{fx_sym}{monthly_profit:,.2f}</div>'
+            f'<div class="cyber-card"><h4>🗓️ MONTHLY PROFIT & BUDGET</h4>'
+            f'<div class="big-num" style="color:#39ff14;">{fx_sym}{monthly_profit:,.2f}</div>'
             f'<small>Sales: {fx_sym}{monthly_sales:,.0f} · Budget: {fx_sym}{monthly_budget_fx:,.0f}/mo</small></div>',
             unsafe_allow_html=True,
         )
     with k3:
         st.markdown(
-            f'<div class="pixel-card"><h4>📆 ANNUAL PROFIT & BUDGET</h4>'
-            f'<div class="big-num" style="color:#39ff14;">{fx_sym}{annual_profit:,.2f}</div>'
+            f'<div class="cyber-card"><h4>📆 ANNUAL PROFIT & BUDGET</h4>'
+            f'<div class="big-num" style="color:#ffe600;">{fx_sym}{annual_profit:,.2f}</div>'
             f'<small>Sales: {fx_sym}{annual_sales:,.0f} · Budget: {fx_sym}{annual_budget_fx:,.0f}/yr</small></div>',
             unsafe_allow_html=True,
         )
     with k4:
         st.markdown(
-            f'<div class="pixel-card"><h4>💰 PERIOD GROSS SALES</h4>'
-            f'<div class="big-num" style="color:#ffe600;">{fx_sym}{total_sales_period:,.2f}</div>'
+            f'<div class="cyber-card"><h4>💰 PERIOD GROSS SALES</h4>'
+            f'<div class="big-num" style="color:#a855f7;">{fx_sym}{total_sales_period:,.2f}</div>'
             f'<small>Net Profit: {fx_sym}{total_profit_period:,.2f} ({margin_pct}% margin)</small></div>',
             unsafe_allow_html=True,
         )
@@ -1354,7 +1350,7 @@ if nav_mode == "📊 Executive Dashboard":
     dash_left, dash_right = st.columns([1.25, 1.0], gap="medium")
 
     with dash_left:
-        st.markdown('<div class="pixel-panel">', unsafe_allow_html=True)
+        st.markdown('<div class="cyber-panel">', unsafe_allow_html=True)
         st.markdown("#### 🎯 Daily, Monthly & Annual Budget Tracker")
         d_ratio = min(1.0, daily_sales / max(1.0, daily_budget_fx))
         m_ratio = min(1.0, monthly_sales / max(1.0, monthly_budget_fx))
@@ -1364,7 +1360,7 @@ if nav_mode == "📊 Executive Dashboard":
         st.progress(a_ratio, text=f"Annual Projected ({fx_sym}{annual_sales:,.0f} / {fx_sym}{annual_budget_fx:,.0f}) — {int(a_ratio*100)}%")
         st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown('<div class="pixel-panel">', unsafe_allow_html=True)
+        st.markdown('<div class="cyber-panel">', unsafe_allow_html=True)
         st.markdown("#### 📥 1-Click Downloadable Business Exports")
         ex1, ex2, ex3 = st.columns(3)
         with ex1:
@@ -1378,7 +1374,7 @@ if nav_mode == "📊 Executive Dashboard":
             st.download_button("⬇️ Listing CSV", data=list_csv, file_name="bulk_listings.csv", mime="text/csv", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown('<div class="pixel-panel">', unsafe_allow_html=True)
+        st.markdown('<div class="cyber-panel">', unsafe_allow_html=True)
         st.markdown("#### 🔍 Live SerpApi Competitor Price Intelligence")
         sc1, sc2 = st.columns([2.2, 1.0])
         with sc1:
@@ -1390,7 +1386,7 @@ if nav_mode == "📊 Executive Dashboard":
         st.markdown('</div>', unsafe_allow_html=True)
 
     with dash_right:
-        st.markdown('<div class="pixel-panel">', unsafe_allow_html=True)
+        st.markdown('<div class="cyber-panel">', unsafe_allow_html=True)
         st.markdown("#### ✅ Persistent Seller To-Do List (+50 XP per Task)")
         todos = db_load_todos()
         done_count = 0
@@ -1421,18 +1417,18 @@ if nav_mode == "📊 Executive Dashboard":
 else:
     st.markdown(
         f"""
-        <div class="pixel-header-box">
+        <div class="cyber-header">
           <div>
-            <h1>MARKETING IS OUR ART<br><span style="color:#00f0ff;font-size:0.65em;">SUCCESS IS YOUR REALITY · {info['level']}</span></h1>
+            <h1>SPECIALIST AI ROOMS<br><span style="color:#00f0ff;font-size:0.65em;">SUCCESS IS YOUR REALITY · {info['level']}</span></h1>
             <p>Private AI back-office for Etsy, eBay &amp; Shopify. Globally synced with your dashboard CSV data. Talk to {info['name']} by voice or text.</p>
             <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-              <span class="pixel-badge">🎮 Active: {info['name']} ({mode})</span>
-              <span class="pixel-badge" style="background:#00f0ff;color:#111115 !important;">🧠 {data['last_model_used']}</span>
-              <span class="pixel-badge">⭐ XP: {st.session_state['seller_xp']}</span>
+              <span class="cyber-badge">🎮 Active: {info['name']} ({mode})</span>
+              <span class="cyber-badge" style="color:#39ff14 !important;">🧠 {data['last_model_used']}</span>
+              <span class="cyber-badge">⭐ XP: {st.session_state['seller_xp']}</span>
             </div>
           </div>
           <div>
-            <span class="pixel-badge" style="background:#111118;color:#00f0ff;border-color:#00f0ff;">♥ ♥ ♥ SYNCED ACTIVE</span>
+            <span class="cyber-badge" style="color:#39ff14 !important;">● SYNCED ACTIVE</span>
           </div>
         </div>
         """,
@@ -1477,7 +1473,7 @@ else:
         render_avatar(info, data)
 
     with col_right:
-        st.markdown(f"<div style='color:#ffffff;font-weight:700;margin-bottom:6px;'>💬 Consult with {info['name']}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='color:#f3f4f6;font-weight:700;margin-bottom:6px;'>💬 Consult with {info['name']}</div>", unsafe_allow_html=True)
         thread = st.container(height=340)
         with thread:
             if not data["messages"]:
