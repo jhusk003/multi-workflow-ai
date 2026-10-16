@@ -444,7 +444,7 @@ AVATAR_HTML = r'''<!DOCTYPE html>
   $('caption').textContent = C.text;
 
   const sound = $('voice');
-  let landmarks = { mouthCenter: [0.50, 0.685], mouthWidth: 0.145, leftEye: [0.395, 0.485], rightEye: [0.605, 0.485], eyeRadius: [0.048, 0.025] };
+  let landmarks = { mouthCenter: [0.50, 0.710], mouthWidth: 0.145, leftEye: [0.395, 0.485], rightEye: [0.605, 0.485], eyeRadius: [0.048, 0.025] };
   const canvas = $('glCanvas'), gl = canvas.getContext('webgl', { alpha: false, antialias: true });
 
   const VS = `attribute vec2 aPos; attribute vec2 aUv; varying vec2 vUv; uniform float uZoom; uniform vec2 uHeadSway; void main() { vUv = aUv; vec2 pos = aPos * uZoom + uHeadSway * smoothstep(0.9,0.1,aUv.y); gl_Position = vec4(pos, 0.0, 1.0); }`;
@@ -636,3 +636,4 @@ with col_right:
         with st.spinner("Thinking..."):
             process_message(mode, data, prompt, attach_reference=bool(data["file_text"]))
         st.rerun()
+
