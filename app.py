@@ -1,7 +1,6 @@
-﻿"""Seller Assist v12.4: 8-Bit Retro Game Edition for Etsy, eBay & Shopify Sellers.
-Features: 4 Specialist Levels in Sidebar, WebGL Avatar with Accurate Lip & Blink Alignment,
-Live Voice-to-Text Hooked to React _valueTracker & AI Brain, TabPFN-3.5 Forecasting,
-Schedule C P&L Generator, and Render Ready.
+"""Seller Assist v12.6: 8-Bit Retro Game Edition with Inventory Analytics & Graphing.
+Features: 4 Specialist Levels in Sidebar, Altair Stock/Sales Graphing, WebGL Avatar,
+Live Voice-to-Text Hooked to Chat Box & AI Brain, TabPFN-3.5 Forecasting, and Render Ready.
 """
 import asyncio
 import base64
@@ -157,7 +156,7 @@ div[data-testid="stFormSubmitButton"] > button {
     border: 2px solid #111115 !important;
     border-radius: 0px !important;
     font-weight: 700 !important;
-    box-shadow: 3px 3px 0px #00f0ff !important;
+    box-shadow: 3px 3px 0px #111115 !important;
 }
 
 div[data-testid="stForm"] {
@@ -493,7 +492,7 @@ AVATAR_HTML = r'''<!DOCTYPE html>
     requestAnimationFrame(render);
     if (!mediaReady) return;
     if (now >= nextBlink) { let el = now - nextBlink; if (el < 150) blink = Math.sin((el/150)*Math.PI); else { blink = 0; nextBlink = now + 2500 + Math.random()*2500; } }
-    let targetOpen = (isSpeaking && !sound.paused) ? (0.5 + 0.4*Math.sin(now*0.02)) : 0;
+    let targetOpen = isSpeaking ? (0.5 + 0.4*Math.sin(now*0.02)) : 0;
     mouthOpen += (targetOpen - mouthOpen)*0.3;
 
     gl.clearColor(0.1, 0.07, 0.18, 1); gl.clear(gl.COLOR_BUFFER_BIT);
@@ -612,32 +611,36 @@ MIC_HTML = r'''<!DOCTYPE html>
         return;
       }
 
-      const lastValue = ta.value;
       const proto = parentWin.HTMLTextAreaElement ? parentWin.HTMLTextAreaElement.prototype : window.HTMLTextAreaElement.prototype;
       const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value').set;
       nativeSetter.call(ta, spokenText);
 
       if (ta._valueTracker) {
-        ta._valueTracker.setValue(lastValue);
+        ta._valueTracker.setValue('');
       }
 
       ta.focus();
+      ta.dispatchEvent(new parentWin.FocusEvent('focusin', { bubbles: true }));
       ta.dispatchEvent(new parentWin.Event('input', { bubbles: true }));
       ta.dispatchEvent(new parentWin.Event('change', { bubbles: true }));
 
       if (shouldSubmit) {
-        ta.dispatchEvent(new parentWin.FocusEvent('blur', { bubbles: true }));
-        ta.blur();
         setTimeout(() => {
-          const submitBtn = parentDoc.querySelector('div[data-testid="stFormSubmitButton"] button') ||
-                            parentDoc.querySelector('button[kind="primaryFormSubmit"]');
-          if (submitBtn) {
-            submitBtn.click();
-            micStatus.textContent = 'Sent: ' + spokenText;
-          } else {
-            micStatus.textContent = 'Typed! Click Send Question';
-          }
-        }, 350);
+          ta.dispatchEvent(new parentWin.FocusEvent('focusout', { bubbles: true }));
+          ta.dispatchEvent(new parentWin.FocusEvent('blur', { bubbles: false }));
+          ta.blur();
+
+          setTimeout(() => {
+            const submitBtn = parentDoc.querySelector('div[data-testid="stFormSubmitButton"] button') ||
+                              parentDoc.querySelector('button[kind="primaryFormSubmit"]');
+            if (submitBtn) {
+              submitBtn.click();
+              micStatus.textContent = 'Sent: ' + spokenText;
+            } else {
+              micStatus.textContent = 'Typed! Click Send Question';
+            }
+          }, 180);
+        }, 150);
       }
     } catch (err) {
       micStatus.textContent = 'Error: ' + err.message;
@@ -791,6 +794,25 @@ with col_left:
     if data.get("tabpfn_report"):
         with st.expander("🔮 TabPFN Forecast", expanded=True):
             st.markdown(data["tabpfn_report"])
+            
+            # Interactive Altair Graphing / Data Visualization Feature
+            try:
+                import pandas as pd
+                import altair as alt
+                df_chart = pd.read_csv(io.StringIO(data["file_text"]))
+                if "product_name" in df_chart.columns and "stock_on_hand" in df_chart.columns:
+                    st.markdown("#### 📈 Stock vs. Weekly Sales Analytics")
+                    chart_data = df_chart[["product_name", "stock_on_hand", "weekly_units_sold"]].melt("product_name", var_name="Metric", value_name="Count")
+                    chart = alt.Chart(chart_data).mark_bar().encode(
+                        x=alt.X("product_name:N", title=None, axis=alt.Axis(labelAngle=-25)),
+                        y=alt.Y("Count:Q", title="Units"),
+                        color="Metric:N",
+                        column="product_name:N"
+                    ).properties(width=50, height=140)
+                    st.altair_chart(chart, use_container_width=True)
+            except Exception:
+                pass
+
     if data.get("schedule_c_pl"):
         with st.expander("📊 Schedule C P&L"):
             st.markdown(data["schedule_c_pl"])
@@ -816,7 +838,6 @@ with col_right:
                 st.markdown(m["content"])
                 st.caption(m["time"])
 
-    # Render Raw Microphone Component
     components.html(MIC_HTML, height=52, scrolling=False)
 
     with st.form(key=f"form_{mode}", clear_on_submit=True):
