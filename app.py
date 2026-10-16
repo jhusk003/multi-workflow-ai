@@ -1,11 +1,8 @@
-﻿"""Seller Assist v12: Y2K 8-Bit Pixel Game Edition for Etsy, eBay & Shopify Sellers.
-Features: Built-in User Speech-to-Text (Microphone Input), 4-Level Pixel Side Panel,
-Retro Sunset Video Game Aesthetic, TabPFN-3.5 Forecasting, and WebGL AI Avatar.
+﻿"""Seller Assist v12.1: Robust 8-Bit Retro Edition with Guaranteed Speak & Audio Controls.
 """
 import asyncio
 import base64
 import csv
-import hashlib
 import io
 import json
 import math
@@ -13,7 +10,6 @@ import os
 import random
 import re
 import time
-import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
@@ -122,13 +118,6 @@ st.markdown("""
     text-shadow: 2px 2px #ff007f;
 }
 
-.pixel-header-box p {
-    color: #e2e8f0;
-    font-size: 0.95rem;
-    margin: 0;
-    font-weight: 600;
-}
-
 .pixel-badge {
     background: #ff007f;
     color: #ffffff !important;
@@ -138,15 +127,6 @@ st.markdown("""
     border: 2px solid #ffffff;
     box-shadow: 3px 3px 0px #00f0ff;
     display: inline-block;
-}
-
-.pixel-card {
-    background: #ffffff;
-    border: 3px solid #111115;
-    border-radius: 14px;
-    padding: 16px;
-    margin-bottom: 16px;
-    box-shadow: 5px 5px 0px #ff007f;
 }
 
 .stButton > button[kind="primary"],
@@ -159,13 +139,6 @@ div[data-testid="stFormSubmitButton"] > button {
     font-size: 0.6rem !important;
     padding: 12px 16px !important;
     box-shadow: 3px 3px 0px #00f0ff !important;
-    transition: transform 0.1s ease !important;
-}
-
-.stButton > button[kind="primary"]:hover,
-div[data-testid="stFormSubmitButton"] > button:hover {
-    transform: translate(-1px, -1px) !important;
-    box-shadow: 4px 4px 0px #00f0ff !important;
 }
 
 .stButton > button[kind="secondary"] {
@@ -174,7 +147,7 @@ div[data-testid="stFormSubmitButton"] > button:hover {
     border: 2px solid #111115 !important;
     border-radius: 0px !important;
     font-weight: 700 !important;
-    box-shadow: 3px 3px 0px #111115 !important;
+    box-shadow: 3px 3px 0px #00f0ff !important;
 }
 
 div[data-testid="stForm"] {
@@ -184,18 +157,10 @@ div[data-testid="stForm"] {
     padding: 14px;
     box-shadow: 5px 5px 0px #ff007f;
 }
-
-[data-testid="stFileUploader"] {
-    background: #ffffff;
-    border: 2px dashed #ff007f;
-    border-radius: 12px;
-    padding: 8px;
-}
 </style>
 """, unsafe_allow_html=True)
 
 STATE_KEY = "seller_assist_8bit_workspaces"
-TRACE_KEY = "seller_assist_8bit_traces"
 
 def new_workspace():
     return {
@@ -210,8 +175,6 @@ def ensure_workspaces(session):
         session[STATE_KEY] = {name: new_workspace() for name in ASSISTANTS}
     for name in ASSISTANTS:
         session[STATE_KEY].setdefault(name, new_workspace())
-    if TRACE_KEY not in session:
-        session[TRACE_KEY] = []
     return session[STATE_KEY]
 
 workspaces = ensure_workspaces(st.session_state)
@@ -219,62 +182,37 @@ workspaces = ensure_workspaces(st.session_state)
 def secret(name):
     val = os.getenv(name, "").strip()
     if val: return val
-    if name in st.session_state and str(st.session_state[name]).strip():
-        return str(st.session_state[name]).strip()
     try: return str(st.secrets.get(name, "")).strip()
     except Exception: return ""
 
-if SENTRY_AVAILABLE and secret("SENTRY_DSN") and not st.session_state.get("_sentry_init"):
-    try:
-        sentry_sdk.init(dsn=secret("SENTRY_DSN"), traces_sample_rate=1.0)
-        st.session_state["_sentry_init"] = True
-    except Exception: pass
-
-def record_agent_trace(span_op, provider, latency_ms, tokens_est):
-    st.session_state[TRACE_KEY].append({
-        "time": datetime.now().strftime("%H:%M:%S"), "op": span_op,
-        "provider": provider, "latency_ms": int(latency_ms), "tokens": int(tokens_est)
-    })
-    st.session_state[TRACE_KEY] = st.session_state[TRACE_KEY][-10:]
-
 def run_tabpfn_inventory_forecast(csv_text):
-    t0 = time.perf_counter()
     rows = list(csv.DictReader(io.StringIO(csv_text)))
     if not rows: return "No CSV rows found."
-    engine_label = "TabPFN-3.5 Foundation Model" if secret("TABPFN_API_KEY") else "TabPFN Local Forecaster"
-    
-    sku_forecasts, urgent_reorders, total_profit = [], [], 0.0
+    total_profit = 0.0
+    sku_forecasts, urgent_reorders = [], []
     for idx, r in enumerate(rows):
         sku = r.get("sku") or f"ITEM-{idx+1}"
         name = r.get("product_name") or sku
         try:
             cost, price, stock, sales, lead = float(r.get("unit_cost_usd", 5)), float(r.get("retail_price_usd", 20)), float(r.get("stock_on_hand", 10)), float(r.get("weekly_units_sold", 7)), float(r.get("supplier_lead_days", 7))
         except Exception: continue
-        
         velocity = max(0.1, sales / 7.0)
         days_stockout = round(stock / velocity, 1)
         net_profit = price - cost - (price * 0.095)
         total_profit += net_profit * sales
-        
-        risk = "🔴 CRITICAL" if days_stockout <= lead else ("🟡 WATCH" if days_stockout <= lead*1.5 else "🟢 OK")
         if days_stockout <= lead: urgent_reorders.append(f"- **{sku} ({name})**: **{days_stockout}d** left!")
-        sku_forecasts.append(f"| {sku} | {name[:18]} | {int(stock)} | {days_stockout}d | ${net_profit:.2f} | {risk} |")
-
-    record_agent_trace("tabpfn.forecast", engine_label, (time.perf_counter()-t0)*1000, len(rows)*40)
-    return f"### 🔮 TabPFN Forecast (`{engine_label}`)\n- **Weekly Net Profit:** `${total_profit:,.2f}`\n\n| SKU | Item | Stock | Horizon | Margin | Risk |\n|---|---|---|---|---|---|\n" + "\n".join(sku_forecasts) + "\n\n#### 🚨 Alerts:\n" + "\n".join(urgent_reorders or ["- All stock levels safe."])
+        sku_forecasts.append(f"| {sku} | {name[:18]} | {int(stock)} | {days_stockout}d | ${net_profit:.2f} |")
+    return f"### 🔮 TabPFN Forecast\n- **Weekly Net Profit:** `${total_profit:,.2f}`\n\n| SKU | Item | Stock | Horizon | Margin |\n|---|---|---|---|---|\n" + "\n".join(sku_forecasts) + "\n\n#### 🚨 Alerts:\n" + "\n".join(urgent_reorders or ["- All stock levels safe."])
 
 def generate_schedule_c_pl(csv_text):
     rows = list(csv.DictReader(io.StringIO(csv_text)))
     rev = sum(float(r.get("retail_price_usd", 20))*float(r.get("weekly_units_sold", 7)) for r in rows) if rows else 4850.0
-    cogs = rev * 0.30
-    fees = rev * 0.095
+    cogs, fees = rev * 0.30, rev * 0.095
     net = rev - cogs - fees
-    record_agent_trace("tax.schedule_c", "Python P&L Engine", 15, 90)
-    return f"### 📊 Schedule C P&L\n- **Gross Sales:** `${rev:,.2f}`\n- **COGS (30\%):** `${cogs:,.2f}`\n- **Platform Fees:** `${fees:,.2f}`\n- **Net Profit (Line 31):** **`${net:,.2f}`**"
+    return f"### 📊 Schedule C P&L\n- **Gross Sales:** `${rev:,.2f}`\n- **COGS (30%):** `${cogs:,.2f}`\n- **Platform Fees:** `${fees:,.2f}`\n- **Net Profit (Line 31):** **`${net:,.2f}`**"
 
 def generate_supplier_po(workspace):
     po_id = f"PO-{datetime.now().strftime('%Y%m%d')}-{random.randint(100,999)}"
-    record_agent_trace("fulfillment.po", "Taylor PO Generator", 12, 75)
     return f"### 📦 Purchase Order `{po_id}`\n- **Vendor:** Primary Supplier LLC\n- **Items:** SLR-101 (45x), SLR-104 (30x)\n- **Total:** `$521.00` · *Net 30*"
 
 def generate_shopify_etsy_listing_csv(title, price, category):
@@ -282,27 +220,12 @@ def generate_shopify_etsy_listing_csv(title, price, category):
     writer = csv.writer(buf)
     writer.writerow(["Handle", "Title", "Body", "Vendor", "Tags", "Price", "Inventory"])
     writer.writerow([title.lower().replace(" ", "-"), title, f"Handcrafted {title}.", "Seller Assist", category, price, "25"])
-    record_agent_trace("listing.csv", "CSV Exporter", 10, 60)
     return buf.getvalue()
 
-def fetch_serpapi_market_comps(query):
-    if not query: return ""
-    record_agent_trace("serpapi.shopping", "SerpApi Google Shopping", 210, 150)
-    return "LIVE SERPAPI COMPS:\n- Handmade Artisan Edition — **$24.50** (Etsy)\n- Premium Boutique Bundle — **$32.00** (Shopify)"
-
-def provider_messages(mode, workspace, prompt, reference, market_context=""):
+def run_ai(mode, workspace, prompt, reference=""):
     ast = ASSISTANTS[mode]
-    sys = f"You are {ast['name']}, the {mode} specialist in Seller Assist (8-bit pixel game edition), speaking in a {ast['tone']} style. {ast['specialty']} Give concise answers with exact figures."
-    history = [{"role": m["role"], "content": m["content"]} for m in workspace["messages"][-12:]]
-    txt = prompt.strip() or "Review my data."
-    if workspace.get("tabpfn_report"): txt += "\n\n[TABPFN REPORT]:\n" + workspace["tabpfn_report"][:2000]
-    if reference: txt += "\n\n[FILE]:\n" + reference[:5000]
-    if market_context: txt += "\n\n" + market_context
-    return [{"role": "system", "content": sys}, *history, {"role": "user", "content": txt}]
-
-def run_ai(mode, workspace, prompt, reference, market_context=""):
-    messages = provider_messages(mode, workspace, prompt, reference, market_context)
-    t0 = time.perf_counter()
+    sys = f"You are {ast['name']}, the {mode} specialist in Seller Assist (8-bit pixel game edition). {ast['specialty']} Give concise answers with exact figures."
+    messages = [{"role": "system", "content": sys}, *[{"role": m["role"], "content": m["content"]} for m in workspace["messages"][-10:]], {"role": "user", "content": prompt}]
     try:
         req = urllib.request.Request(
             "https://text.pollinations.ai/openai",
@@ -312,19 +235,13 @@ def run_ai(mode, workspace, prompt, reference, market_context=""):
         )
         with urllib.request.urlopen(req, timeout=14) as r:
             raw = r.read().decode("utf-8", errors="replace").strip()
-            reply = json.loads(raw)["choices"][0]["message"]["content"].strip() if raw.startswith("{") else raw
-            if reply:
-                workspace["last_model_used"] = "Cloud Open-Weight Router"
-                record_agent_trace("llm.chat", "pollinations-ai", (time.perf_counter()-t0)*1000, len(reply.split())*1.3)
-                return reply
-    except Exception: pass
-    return "I am operating offline. Load your CSV or check your partner API keys in the sidebar."
+            return json.loads(raw)["choices"][0]["message"]["content"].strip() if raw.startswith("{") else raw
+    except Exception:
+        return "I am operating offline. Load your CSV or check your partner API keys."
 
 def neural_speech(text, voice, eleven_id="21m00Tcm4TlvDq8ikWAM"):
-    t0 = time.perf_counter()
-    clean = re.sub(r"[*#`_~>|]+", " ", text or "").strip()[:1000]
-    if not clean: return "", [], "No text."
-    
+    clean = re.sub(r"[*#`_~>|]+", " ", text or "").strip()[:800]
+    if not clean: return ""
     eleven_key = secret("ELEVENLABS_API_KEY")
     if eleven_key:
         try:
@@ -334,48 +251,38 @@ def neural_speech(text, voice, eleven_id="21m00Tcm4TlvDq8ikWAM"):
                 headers={"xi-api-key": eleven_key, "Content-Type": "application/json", "Accept": "audio/mpeg"},
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with urllib.request.urlopen(req, timeout=12) as resp:
                 b = resp.read()
-            if len(b) > 400:
-                record_agent_trace("tts.elevenlabs", "ElevenLabs v2", (time.perf_counter()-t0)*1000, len(clean)//4)
-                return base64.b64encode(b).decode("ascii"), [], ""
+            if len(b) > 300: return base64.b64encode(b).decode("ascii")
         except Exception: pass
-
     try:
         import edge_tts
-    except ImportError: return "", [], "edge-tts missing"
+        async def gen():
+            aud = bytearray()
+            async for chunk in edge_tts.Communicate(clean, voice).stream():
+                if chunk.get("type") == "audio": aud.extend(chunk.get("data") or b"")
+            return base64.b64encode(aud).decode("ascii")
+        return asyncio.run(gen())
+    except Exception: return ""
 
-    async def gen():
-        aud = bytearray()
-        async for chunk in edge_tts.Communicate(clean, voice).stream():
-            if chunk.get("type") == "audio": aud.extend(chunk.get("data") or b"")
-        return base64.b64encode(aud).decode("ascii")
-
-    try:
-        aud = asyncio.run(gen())
-        record_agent_trace("tts.neural", f"EdgeTTS ({voice})", (time.perf_counter()-t0)*1000, len(clean)//4)
-        return aud, [], ""
-    except Exception as e: return "", [], str(e)
-
-def process_message(mode, workspace, prompt, ref=False, serp=False):
+def process_message(mode, workspace, prompt, ref=False):
     prompt = (prompt or "").strip()
     ref_text = workspace["file_text"] if ref else ""
     if not prompt and not ref_text: return
-    market = fetch_serpapi_market_comps(prompt) if serp else ""
-    reply = run_ai(mode, workspace, prompt, ref_text, market)
+    reply = run_ai(mode, workspace, prompt, ref_text)
     now = datetime.now().strftime("%b %d · %I:%M %p")
     workspace["messages"].append({"role": "user", "content": prompt or "Review file.", "time": now})
     workspace["messages"].append({"role": "assistant", "content": reply, "time": now})
     workspace["last_reply"] = reply
     cfg = ASSISTANTS[mode]
-    workspace["last_audio"], workspace["word_timings"], workspace["audio_error"] = neural_speech(reply, cfg["voice"], cfg.get("eleven_voice_id", ""))
+    workspace["last_audio"] = neural_speech(reply, cfg["voice"], cfg.get("eleven_voice_id", ""))
     workspace["reply_id"] = uuid.uuid4().hex
 
 def render_avatar(assistant, workspace):
     payload = {
         "name": assistant["name"], "room": assistant["level"], "accent": assistant["color"],
         "photo": assistant["photo"], "text": workspace["last_reply"] or f"Hi! I'm {assistant['name']} in {assistant['level']}. Let's boost your sales!",
-        "audio": workspace["last_audio"], "timings": workspace["word_timings"], "replyId": workspace["reply_id"]
+        "audio": workspace["last_audio"], "replyId": workspace["reply_id"]
     }
     safe = json.dumps(payload, ensure_ascii=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
     components.html(AVATAR_HTML.replace("__PAYLOAD__", safe), height=635, scrolling=False)
@@ -410,8 +317,7 @@ AVATAR_HTML = r'''<!DOCTYPE html>
   }
   button:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0px #ff007f; }
   button.alt { background: #2a1b4e; color: #ffffff; border-color: #00f0ff; }
-  select { background: #2a1b4e; color: #ffffff; border: 2px solid #00f0ff; padding: 4px 8px; font-size: 11px; font-weight: 700; }
-  #voice { height: 26px; width: 100%; accent-color: #00f0ff; }
+  #voice { height: 32px; width: 100%; accent-color: #00f0ff; }
   .status-bar { display: flex; justify-content: space-between; font-size: 10.5px; color: #9ca3af; font-weight: 600; }
   #caption { font-size: 11px; color: #ffffff; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
 </style>
@@ -426,14 +332,12 @@ AVATAR_HTML = r'''<!DOCTYPE html>
   <div class="controls">
     <div class="buttons">
       <div style="display:flex;gap:6px;">
-        <button id="speak" type="button">▶ Speak AI Voice</button>
+        <button id="speak" type="button">▶ Play Audio Voice</button>
         <button class="alt" id="stop" type="button">■ Stop</button>
-        <button class="alt" id="demo" type="button">Test Lip Range</button>
       </div>
-      <select id="framing"><option value="1.0" selected>Portrait</option><option value="1.22">Close-Up</option></select>
     </div>
     <audio id="voice" controls preload="auto"></audio>
-    <div class="status-bar"><span id="status">Ready.</span><span>WebGL Shader Active</span></div>
+    <div class="status-bar"><span id="status">Audio Ready</span><span>WebGL Shader Active</span></div>
     <div id="caption"></div>
   </div>
 </div>
@@ -512,16 +416,14 @@ AVATAR_HTML = r'''<!DOCTYPE html>
   function resize() { let r = canvas.parentElement.getBoundingClientRect(), d = Math.min(window.devicePixelRatio||1, 2); canvas.width = Math.round(r.width*d); canvas.height = Math.round(r.height*d); gl.viewport(0,0,canvas.width,canvas.height); }
   window.addEventListener('resize', resize); resize();
 
-  let mouthOpen = 0, blink = 0, nextBlink = performance.now()+2000, demoUntil = 0, isSpeaking = false;
+  let mouthOpen = 0, blink = 0, nextBlink = performance.now()+2000, isSpeaking = false;
   if (C.audio) sound.src = 'data:audio/mpeg;base64,' + C.audio; else sound.style.display = 'none';
 
   function render(now) {
     requestAnimationFrame(render);
     if (!mediaReady) return;
     if (now >= nextBlink) { let el = now - nextBlink; if (el < 150) blink = Math.sin((el/150)*Math.PI); else { blink = 0; nextBlink = now + 2500 + Math.random()*2500; } }
-    let targetOpen = 0;
-    if (now < demoUntil) targetOpen = Math.max(0, Math.sin(now*0.008))*0.8;
-    else if (isSpeaking && !sound.paused) targetOpen = 0.5 + 0.4*Math.sin(now*0.02);
+    let targetOpen = (isSpeaking && !sound.paused) ? (0.5 + 0.4*Math.sin(now*0.02)) : 0;
     mouthOpen += (targetOpen - mouthOpen)*0.3;
 
     gl.clearColor(0.1, 0.07, 0.18, 1); gl.clear(gl.COLOR_BUFFER_BIT);
@@ -535,9 +437,9 @@ AVATAR_HTML = r'''<!DOCTYPE html>
   }
   requestAnimationFrame(render);
 
-  async function play() { if (!C.audio) { demoUntil = performance.now()+4000; return; } try { sound.currentTime=0; await sound.play(); } catch(e){} }
+  async function play() { if (!C.audio) return; try { sound.currentTime=0; await sound.play(); } catch(e){} }
   $('speak').onclick = play;
-  $('stop').onclick = () => { sound.pause(); demoUntil=0; isSpeaking=false; };$('demo').onclick = () => { demoUntil = performance.now()+5000; };
+  $('stop').onclick = () => { sound.pause(); isSpeaking=false; };
   sound.onplay = () => { isSpeaking=true; };
   sound.onended = sound.onpause = () => { isSpeaking=false; };
   if (C.audio && C.replyId && sessionStorage.getItem('p_'+C.name)!==C.replyId) { sessionStorage.setItem('p_'+C.name, C.replyId); setTimeout(play, 300); }
@@ -551,7 +453,7 @@ with st.sidebar:
     st.markdown("## 🕹️ Seller Assist")
     st.caption("8-Bit Retro Game Edition")
     st.markdown("### **CHOOSE LEVEL**")
-    mode = st.radio("Select Specialist Level", list(ASSISTANTS), key="bit_mode", label_visibility="collapsed")
+    mode = st.radio("Select Level", list(ASSISTANTS), key="bit_mode", label_visibility="collapsed")
     info = ASSISTANTS[mode]
     data = workspaces[mode]
     st.divider()
@@ -573,7 +475,7 @@ st.markdown(
         </div>
       </div>
       <div>
-        <span class="pixel-badge" style="background:#111118;color:#00f0ff;border-color:#00f0ff;">♥ ♥ ♥ LEVEL 1 ACTIVE</span>
+        <span class="pixel-badge" style="background:#111118;color:#00f0ff;border-color:#00f0ff;">♥ ♥ ♥ LEVEL ACTIVE</span>
       </div>
     </div>
     """,
@@ -629,51 +531,6 @@ with col_right:
             with st.chat_message(m["role"]):
                 st.markdown(m["content"])
                 st.caption(m["time"])
-
-    # Built-in Web Speech API microphone dictation button for user speech input
-    components.html("""
-    <div style="background:#ffffff;border:3px solid #111115;border-radius:12px;padding:8px;box-shadow:3px 3px 0px #ff007f;display:flex;align-items:center;gap:8px;">
-      <button id="micBtn" type="button" style="background:#ff007f;color:#fff;border:2px solid #111115;padding:6px 12px;font-family:'Press Start 2P',monospace;font-size:9px;cursor:pointer;box-shadow:2px 2px 0px #00f0ff;">🎙️ Speak Question</button>
-      <span id="micStatus" style="font-size:11px;font-weight:700;color:#111115;">Click to speak into mic</span>
-    </div>
-    <script>
-      const micBtn = document.getElementById('micBtn');
-      const micStatus = document.getElementById('micStatus');
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        micStatus.textContent = "Mic input not supported in this browser.";
-        micBtn.disabled = true;
-      } else {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.lang = 'en-US';
-        micBtn.onclick = () => {
-          recognition.start();
-          micStatus.textContent = "Listening... Speak now!";
-          micBtn.style.background = "#00f0ff";
-          micBtn.style.color = "#111115";
-        };
-        recognition.onresult = (event) => {
-          const speechToText = event.results[0][0].transcript;
-          micStatus.textContent = "Heard: \"" + speechToText + "\"";
-          micBtn.style.background = "#ff007f";
-          micBtn.style.color = "#fff";
-          // Pass speech text to parent Streamlit container via query params or auto-fill
-          window.parent.postMessage({type: 'streamlit:setComponentValue', value: speechToText}, '*');
-        };
-        recognition.onerror = () => {
-          micStatus.textContent = "Mic error. Try again.";
-          micBtn.style.background = "#ff007f";
-          micBtn.style.color = "#fff";
-        };
-        recognition.onend = () => {
-          micBtn.style.background = "#ff007f";
-          micBtn.style.color = "#fff";
-        };
-      }
-    </script>
-    """, height=65)
 
     with st.form(key=f"form_{mode}", clear_on_submit=True):
         prompt = st.text_area("Question", placeholder="Ask about stockouts, SEO, taxes...", height=85, label_visibility="collapsed")
