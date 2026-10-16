@@ -1,4 +1,4 @@
-"""Seller Assist v15.0: Cyberpunk Executive Edition.
+"""Seller Assist v15.1: Cyberpunk Executive Edition (Syntax Fixed).
 Visual Overhaul: Sleek Obsidian Dark Mode, Neon Cyan/Emerald Accents, Glassmorphic Panels,
 Global CSV Sync, SQLite Persistence, Marketplace Fee Simulator, 1-Click Exports, and XP Gamification.
 """
@@ -252,12 +252,6 @@ st.markdown("""
     padding: 20px;
     margin-bottom: 16px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    transition: all 0.2s ease;
-}
-
-.cyber-card:hover {
-    border-color: rgba(0, 240, 255, 0.3);
-    box-shadow: 0 12px 32px rgba(0, 240, 255, 0.15);
 }
 
 .cyber-card h4 {
@@ -304,12 +298,6 @@ div[data-testid="stFormSubmitButton"] > button {
     font-weight: 700 !important;
     padding: 12px 20px !important;
     box-shadow: 0 4px 16px rgba(0, 240, 255, 0.3) !important;
-    transition: transform 0.1s ease !important;
-}
-
-.stButton > button[kind="primary"]:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(0, 240, 255, 0.5) !important;
 }
 
 .stButton > button[kind="secondary"] {
@@ -426,8 +414,26 @@ def run_tabpfn_inventory_forecast(csv_text, fee_rate=0.095):
         sku_forecasts.append(f"| {sku} | {name[:18]} | {int(stock)} | {days_stockout}d | {eoq_units}u | ${net_profit:.2f} |")
     return (
         f"### 🔮 TabPFN-3.5 Forecast & EOQ Restock Plan\n"
-        f"- **Weekly Net Profit:** `${total_profit:,.2f}`\n\n" "\vert{} SKU \vert{} Item \vert{} Stock \vert{} Horizon \vert{} EOQ Order \vert{} Unit Net \vert{}\n\vert{}---\vert{}---\vert{}---\vert{}---\vert{}---\vert{}---\vert{}\n" + "\n".join(sku_forecasts) + "\n\n#### 🚨 Urgent EOQ Reorder Alerts:\n" + "\n".join(urgent_reorders or ["- All stock levels exceed supplier lead times."]) )  def generate_schedule_c_pl(csv_text, fee_rate=0.095): rows = list(csv.DictReader(io.StringIO(csv_text))) rev = sum(float(r.get("retail_price_usd", 20)) * float(r.get("weekly_units_sold", 7)) for r in rows) if rows else 4850.0 cogs, fees = rev * 0.30, rev * fee_rate net = rev - cogs - fees annualized_rev = rev * 52.0 nexus_flag = "⚠️ Over $100k Annualized Economic Nexus Threshold" if annualized_rev >= 100000 else "✅ Under $100k Economic Nexus Threshold" return ( f"### 📊 Schedule C P&L & Nexus Summary\n" f"- **Weekly Gross Sales:** `${rev:,.2f}` (*Annualized: `${annualized_rev:,.2f}`*)\n" f"- **COGS (Line 4):** `${cogs:,.2f}`\n"
-        f"- **Marketplace Fees (Line 10):** `${fees:,.2f}`\n" f"- **Net Profit (Line 31):** **`${net:,.2f}`**\n"
+        f"- **Weekly Net Profit:** `${total_profit:,.2f}`\n\n"
+        "| SKU | Item | Stock | Horizon | EOQ Order | Unit Net |\n|---|---|---|---|---|---|\n"
+        + "\n".join(sku_forecasts)
+        + "\n\n#### 🚨 Urgent EOQ Reorder Alerts:\n"
+        + "\n".join(urgent_reorders or ["- All stock levels exceed supplier lead times."])
+    )
+
+def generate_schedule_c_pl(csv_text, fee_rate=0.095):
+    rows = list(csv.DictReader(io.StringIO(csv_text)))
+    rev = sum(float(r.get("retail_price_usd", 20)) * float(r.get("weekly_units_sold", 7)) for r in rows) if rows else 4850.0
+    cogs, fees = rev * 0.30, rev * fee_rate
+    net = rev - cogs - fees
+    annualized_rev = rev * 52.0
+    nexus_flag = "⚠️ Over $100k Annualized Economic Nexus Threshold" if annualized_rev >= 100000 else "✅ Under $100k Economic Nexus Threshold"
+    return (
+        "### 📊 Schedule C P&L & Nexus Summary\n"
+        f"- **Weekly Gross Sales:** `${rev:,.2f}` (*Annualized: `${annualized_rev:,.2f}`*)\n"
+        f"- **COGS (Line 4):** `${cogs:,.2f}`\n"
+        f"- **Marketplace Fees (Line 10):** `${fees:,.2f}`\n"
+        f"- **Net Profit (Line 31):** **`${net:,.2f}`**\n"
         f"- **Sales-Tax Nexus Status:** {nexus_flag}"
     )
 
