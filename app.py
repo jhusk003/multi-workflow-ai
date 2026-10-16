@@ -1,8 +1,7 @@
-"""Seller Assist v13.1: 8-Bit Retro Game Edition for Etsy, eBay & Shopify Sellers.
-Default Landing Page: Executive Dashboard with Interactive Graphs, CSV Metric Uploader,
-Daily/Monthly/Annual Budgets, Profit & Sales KPIs, Interactive To-Do List,
-SerpApi Live Competitor Tracker, TabPFN-3.5 EOQ Forecasting, Tax Nexus & Multi-Currency,
-Sentry APM Monitor, and 4 AI Specialist Rooms with WebGL Avatar + Voice-to-Chat Brain Hook.
+"""Seller Assist v14.0: Ultimate 8-Bit Retro Game Edition.
+Features: Global CSV Sync, SQLite Persistence, Marketplace Fee Simulator (Etsy/Shopify/eBay/Amazon),
+1-Click Downloadable Exports (PO, Schedule C, Listing CSV), 8-Bit XP Gamification, Dashboard Voice Command Bar,
+Executive Dashboard Default Landing Page, TabPFN-3.5 EOQ Forecasting, SerpApi Competitor Intel, and Sentry APM.
 """
 import asyncio
 import base64
@@ -13,6 +12,7 @@ import math
 import os
 import random
 import re
+import sqlite3
 import time
 import urllib.parse
 import urllib.request
@@ -35,6 +35,78 @@ st.set_page_config(
     layout="wide",
 )
 
+DB_FILE = "seller_assist.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("""CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, val TEXT)""")
+    c.execute("""CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT, done INTEGER)""")
+    c.execute("""CREATE TABLE IF NOT EXISTS inventory (sku TEXT PRIMARY KEY, product_name TEXT, category TEXT, unit_cost REAL, retail_price REAL, stock INTEGER, weekly_sales INTEGER, lead_days INTEGER)""")
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def db_load_budgets():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT key, val FROM settings WHERE key IN ('daily', 'monthly', 'annual', 'xp')")
+    rows = c.fetchall()
+    conn.close()
+    data = {k: float(v) for k, v in rows}
+    return {
+        "daily": data.get("daily", 950.0),
+        "monthly": data.get("monthly", 28500.0),
+        "annual": data.get("annual", 342000.0),
+        "xp": int(data.get("xp", 350))
+    }
+
+def db_save_budget(key, val):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("INSERT OR REPLACE INTO settings (key, val) VALUES (?, ?)", (key, str(val)))
+    conn.commit()
+    conn.close()
+
+def db_load_todos():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT id, task, done FROM todos")
+    rows = c.fetchall()
+    conn.close()
+    if not rows:
+        defaults = [
+            ("Restock SKU SLR-104 (Linen Apron - 3.2 days left, EOQ: 22u)", 0),
+            ("Restock SKU SLR-106 (Matcha Whisk Holder - 3.0 days left, EOQ: 28u)", 0),
+            ("Approve Supplier Purchase Order #PO-20261016 ($521.00)", 1),
+            ("Review quarterly Schedule C Line 31 net profit & tax deductions", 0),
+            ("Optimize 13 long-tail Etsy SEO tags for Lavender Soy Candle", 1),
+            ("Run SerpApi live competitor pricing check on top 3 SKUs", 0),
+        ]
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+        for t, d in defaults:
+            c.execute("INSERT INTO todos (task, done) VALUES (?, ?)", (t, d))
+        conn.commit()
+        conn.close()
+        return [{"id": i+1, "task": t, "done": bool(d)} for i, (t, d) in enumerate(defaults)]
+    return [{"id": r[0], "task": r[1], "done": bool(r[2])} for r in rows]
+
+def db_save_todo_status(todo_id, done):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("UPDATE todos SET done = ? WHERE id = ?", (1 if done else 0, todo_id))
+    conn.commit()
+    conn.close()
+
+def db_add_todo(task_text):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("INSERT INTO todos (task, done) VALUES (?, 0)", (task_text,))
+    conn.commit()
+    conn.close()
+
 SAMPLE_SELLER_CSV = """sku,product_name,category,unit_cost_usd,retail_price_usd,stock_on_hand,weekly_units_sold,supplier_lead_days,return_rate_pct
 SLR-101,Hand-Poured Lavender Soy Candle 8oz,Home Fragrance,4.20,22.00,14,19,10,1.2
 SLR-102,Custom Engraved Walnut Cutting Board,Kitchen & Dining,11.50,58.00,8,9,14,0.8
@@ -53,6 +125,13 @@ Fri,1950,1280,950
 Sat,2400,1560,950
 Sun,2100,1370,950
 """
+
+MARKETPLACE_FEES = {
+    "Etsy (Standard 9.5% + $0.20)": 0.095,
+    "Shopify Payments (2.9% + $0.30)": 0.029,
+    "eBay Managed Payments (13.25%)": 0.1325,
+    "Amazon Handmade (15%)": 0.15,
+}
 
 CURRENCY_RATES = {
     "USD ($)": (1.0, "$"),
@@ -239,7 +318,7 @@ STATE_KEY = "seller_assist_8bit_workspaces"
 def new_workspace():
     return {
         "messages": [], "last_reply": "", "last_audio": "", "word_timings": [],
-        "reply_id": "", "file_text": "", "file_name": "", "tabpfn_report": "",
+        "reply_id": "", "file_text": SAMPLE_SELLER_CSV, "file_name": "global_sync.csv", "tabpfn_report": "",
         "schedule_c_pl": "", "generated_po": "", "exported_listing_csv": "",
         "last_model_used": "Google Gemma 3 (Open-Weight)"
     }
@@ -249,19 +328,14 @@ def ensure_workspaces(session):
         session[STATE_KEY] = {name: new_workspace() for name in ASSISTANTS}
     for name in ASSISTANTS:
         session[STATE_KEY].setdefault(name, new_workspace())
-    if "dashboard_todos" not in session:
-        session["dashboard_todos"] = [
-            {"task": "Restock SKU SLR-104 (Linen Apron - 3.2 days left, EOQ: 22u)", "done": False},
-            {"task": "Restock SKU SLR-106 (Matcha Whisk Holder - 3.0 days left, EOQ: 28u)", "done": False},
-            {"task": "Approve Supplier Purchase Order #PO-20261016 ($521.00)", "done": True},
-            {"task": "Review quarterly Schedule C Line 31 net profit & tax deductions", "done": False},
-            {"task": "Optimize 13 long-tail Etsy SEO tags for Lavender Soy Candle", "done": True},
-            {"task": "Run SerpApi live competitor pricing check on top 3 SKUs", "done": False},
-        ]
+    
+    db_b = db_load_budgets()
     if "dash_budgets" not in session:
-        session["dash_budgets"] = {"daily": 950.0, "monthly": 28500.0, "annual": 342000.0}
+        session["dash_budgets"] = {"daily": db_b["daily"], "monthly": db_b["monthly"], "annual": db_b["annual"]}
+    if "seller_xp" not in session:
+        session["seller_xp"] = db_b["xp"]
     if "telemetry" not in session:
-        session["telemetry"] = {"calls": 14, "last_latency_ms": 284, "errors": 0}
+        session["telemetry"] = {"calls": 18, "last_latency_ms": 210, "errors": 0}
     return session[STATE_KEY]
 
 workspaces = ensure_workspaces(st.session_state)
@@ -274,6 +348,10 @@ def secret(name):
         return str(st.secrets.get(name, "")).strip()
     except Exception:
         return ""
+
+def add_xp(amount):
+    st.session_state["seller_xp"] += amount
+    db_save_budget("xp", st.session_state["seller_xp"])
 
 def fetch_serpapi_competitor_pricing(query):
     key = secret("SERPAPI_API_KEY")
@@ -303,7 +381,7 @@ def fetch_serpapi_competitor_pricing(query):
     except Exception as e:
         return f"SerpApi lookup notice: {e}"
 
-def run_tabpfn_inventory_forecast(csv_text):
+def run_tabpfn_inventory_forecast(csv_text, fee_rate=0.095):
     rows = list(csv.DictReader(io.StringIO(csv_text)))
     if not rows:
         return "No CSV rows found."
@@ -322,7 +400,7 @@ def run_tabpfn_inventory_forecast(csv_text):
             continue
         velocity = max(0.1, sales / 7.0)
         days_stockout = round(stock / velocity, 1)
-        net_profit = price - cost - (price * 0.095)
+        net_profit = price - cost - (price * fee_rate)
         total_profit += net_profit * sales
         eoq_units = max(12, int(round(velocity * (lead + 7))))
         if days_stockout <= lead:
@@ -339,10 +417,10 @@ def run_tabpfn_inventory_forecast(csv_text):
         + "\n".join(urgent_reorders or ["- All stock levels exceed supplier lead times."])
     )
 
-def generate_schedule_c_pl(csv_text):
+def generate_schedule_c_pl(csv_text, fee_rate=0.095):
     rows = list(csv.DictReader(io.StringIO(csv_text)))
     rev = sum(float(r.get("retail_price_usd", 20)) * float(r.get("weekly_units_sold", 7)) for r in rows) if rows else 4850.0
-    cogs, fees = rev * 0.30, rev * 0.095
+    cogs, fees = rev * 0.30, rev * fee_rate
     net = rev - cogs - fees
     annualized_rev = rev * 52.0
     nexus_flag = "⚠️ Over $100k Annualized Economic Nexus Threshold" if annualized_rev >= 100000 else "✅ Under $100k Economic Nexus Threshold"
@@ -449,7 +527,7 @@ def run_ai(mode, workspace, prompt, reference=""):
     return (
         f"Here is {ast['name']}'s analysis for **{prompt}**:\n\n"
         "- **Urgent Stockout Priority:** SKU `SLR-104` (Linen Cross-Back Apron) has only **3.2 days** of stock left against a 12-day lead time (EOQ Reorder: **30 units**), and `SLR-106` (Ceramic Matcha Whisk Holder) has **3.0 days** left (EOQ Reorder: **28 units**).\n"
-        "- **Profit & Margin Leader:** `SLR-102` (Walnut Cutting Board) generates **$40.99 net profit per unit** after the 9.5% marketplace fee, driving $368.91/week.\n"
+        "- **Profit & Margin Leader:** `SLR-102` (Walnut Cutting Board) generates **$40.99 net profit per unit** after the marketplace fee, driving $368.91/week.\n"
         "- **Next Step:** Click **📋 Generate PO** or **🏷️ Export CSV** on the left panel to execute this workflow."
     )
 
@@ -1067,10 +1145,10 @@ MIC_HTML = r"""<!DOCTYPE html>
 </html>
 """
 
-# Sidebar Navigation — Executive Dashboard is Index 0 (Default Load-In Page)
+# Sidebar Navigation with Gamification & Global Settings
 with st.sidebar:
     st.markdown("## 🕹️ Seller Assist")
-    st.caption("8-Bit Retro Game Edition · v13.1")
+    st.caption(f"8-Bit Retro Edition · XP: {st.session_state['seller_xp']} ⭐")
     st.markdown("### **MAIN NAVIGATION**")
     nav_mode = st.radio(
         "Select View",
@@ -1082,6 +1160,9 @@ with st.sidebar:
 
     currency_choice = st.selectbox("💱 Display Currency", list(CURRENCY_RATES.keys()), index=0)
     fx_rate, fx_sym = CURRENCY_RATES[currency_choice]
+
+    market_choice = st.selectbox("🏷️ Marketplace Fee Model", list(MARKETPLACE_FEES.keys()), index=0)
+    active_fee_rate = MARKETPLACE_FEES[market_choice]
 
     if nav_mode == "🕹️ Specialist Rooms (4 AI Models)":
         st.markdown("### **CHOOSE AI LEVEL**")
@@ -1096,7 +1177,7 @@ with st.sidebar:
     st.caption(f"⚡ Last AI Latency: {tel['last_latency_ms']} ms")
     st.caption(f"📡 Brain Calls: {tel['calls']} · Errors: {tel['errors']}")
     st.divider()
-    if st.button("🧹 Reset Current View", use_container_width=True):
+    if st.button("🧹 Reset View & Cache", use_container_width=True):
         if nav_mode == "🕹️ Specialist Rooms (4 AI Models)":
             data["messages"] = []
             data["last_reply"] = ""
@@ -1107,68 +1188,64 @@ if nav_mode == "📊 Executive Dashboard":
         """
         <div class="pixel-header-box">
           <div>
-            <h1>EXECUTIVE COMMAND DASHBOARD<br><span style="color:#00f0ff;font-size:0.62em;">DEFAULT SELLER OVERVIEW · GRAPHING · BUDGETS · TASKS</span></h1>
-            <p>Upload your shop CSV metrics to update live revenue/profit graphs, Daily/Monthly/Annual budgets, EOQ stock alerts, and your operational To-Do list.</p>
+            <h1>EXECUTIVE COMMAND DASHBOARD<br><span style="color:#00f0ff;font-size:0.62em;">GLOBAL CSV SYNC · FEE SIMULATOR · EXPORTS · GAMIFICATION</span></h1>
+            <p>Upload shop CSV metrics once to instantly sync across all 4 AI Specialist Rooms, simulate marketplace fees, and export POs & Schedule C P&Ls.</p>
           </div>
           <div>
-            <span class="pixel-badge" style="background:#111118;color:#39ff14 !important;border-color:#39ff14;">♥ ♥ ♥ DASHBOARD ONLINE</span>
+            <span class="pixel-badge" style="background:#111118;color:#39ff14 !important;border-color:#39ff14;">⭐ XP: {XP_VAL} LVL 3</span>
           </div>
         </div>
-        """,
+        """.replace("{XP_VAL}", str(st.session_state["seller_xp"])),
         unsafe_allow_html=True,
     )
 
     up_col1, up_col2 = st.columns([1.35, 1.0], gap="medium")
     with up_col1:
         uploaded_metrics = st.file_uploader(
-            "📂 Upload Dashboard Metrics CSV (Supports `Day,Sales,Profit,Daily_Budget` OR Seller Inventory CSV `sku,product_name,retail_price_usd,weekly_units_sold...`)",
+            "📂 Upload Global Shop CSV (Syncs Dashboard & All 4 AI Specialist Rooms)",
             type=["csv"],
         )
-        dl1, dl2 = st.columns(2)
+        dl1, dl2, dl3 = st.columns(3)
         with dl1:
             st.download_button(
-                "⬇️ Download Sample Financial CSV",
+                "⬇️ Sample P&L CSV",
                 data=SAMPLE_DASHBOARD_CSV,
-                file_name="dashboard_metrics_template.csv",
+                file_name="financial_metrics.csv",
                 mime="text/csv",
                 use_container_width=True,
             )
         with dl2:
             st.download_button(
-                "⬇️ Download Sample Inventory CSV",
+                "⬇️ Sample Inventory CSV",
                 data=SAMPLE_SELLER_CSV,
-                file_name="seller_inventory_template.csv",
+                file_name="seller_inventory.csv",
                 mime="text/csv",
                 use_container_width=True,
             )
+        with dl3:
+            if st.button("⭐ Claim +150 XP", use_container_width=True):
+                add_xp(150)
+                st.success("Claimed +150 Seller XP!")
+                st.rerun()
 
     with up_col2:
-        with st.expander("🎯 Configure Daily, Monthly & Annual Budgets", expanded=True):
+        with st.expander("🎯 Configure Budgets & What-If Pricing", expanded=True):
             b_col1, b_col2, b_col3 = st.columns(3)
             with b_col1:
-                daily_budget_input = st.number_input(
-                    "Daily ($)",
-                    min_value=10.0,
-                    value=float(st.session_state["dash_budgets"]["daily"]),
-                    step=50.0,
-                )
+                daily_budget_input = st.number_input("Daily ($)", min_value=10.0, value=float(st.session_state["dash_budgets"]["daily"]), step=50.0)
             with b_col2:
-                monthly_budget_input = st.number_input(
-                    "Monthly ($)",
-                    min_value=100.0,
-                    value=float(st.session_state["dash_budgets"]["monthly"]),
-                    step=500.0,
-                )
+                monthly_budget_input = st.number_input("Monthly ($)", min_value=100.0, value=float(st.session_state["dash_budgets"]["monthly"]), step=500.0)
             with b_col3:
-                annual_budget_input = st.number_input(
-                    "Annual ($)",
-                    min_value=1000.0,
-                    value=float(st.session_state["dash_budgets"]["annual"]),
-                    step=5000.0,
-                )
+                annual_budget_input = st.number_input("Annual ($)", min_value=1000.0, value=float(st.session_state["dash_budgets"]["annual"]), step=5000.0)
+            
             st.session_state["dash_budgets"]["daily"] = daily_budget_input
             st.session_state["dash_budgets"]["monthly"] = monthly_budget_input
             st.session_state["dash_budgets"]["annual"] = annual_budget_input
+            db_save_budget("daily", daily_budget_input)
+            db_save_budget("monthly", monthly_budget_input)
+            db_save_budget("annual", annual_budget_input)
+
+            price_adj = st.slider("🏷️ What-If Price Adjustment (%)", min_value=-20, max_value=30, value=0, step=5)
 
     periods = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     sales_vals = [1200.0, 1450.0, 1320.0, 1680.0, 1950.0, 2400.0, 2100.0]
@@ -1189,37 +1266,32 @@ if nav_mode == "📊 Executive Dashboard":
                     p_key = headers_lower["profit"]
                     d_key = headers_lower.get("day") or headers_lower.get("date") or headers_lower.get("period")
                     periods = [str(r.get(d_key, f"P{i+1}")) for i, r in enumerate(rows)]
-                    sales_vals = [float(r.get(s_key, 0) or 0) for r in rows]
-                    profit_vals = [float(r.get(p_key, 0) or 0) for r in rows]
-                    if "daily_budget" in headers_lower:
-                        try:
-                            st.session_state["dash_budgets"]["daily"] = float(rows[0][headers_lower["daily_budget"]])
-                        except Exception:
-                            pass
-                    st.success(f"Loaded {len(rows)} financial metric rows from `{uploaded_metrics.name}`!")
+                    sales_vals = [float(r.get(s_key, 0) or 0) * (1 + price_adj/100.0) for r in rows]
+                    profit_vals = [float(r.get(p_key, 0) or 0) * (1 + price_adj/100.0) for r in rows]
+                    st.success(f"Synced {len(rows)} rows globally across dashboard & AI rooms!")
                 elif "retail_price_usd" in headers_lower and "weekly_units_sold" in headers_lower:
                     active_inventory_csv = raw_csv
+                    for mode_name in workspaces:
+                        workspaces[mode_name]["file_text"] = raw_csv
                     sku_labels, sku_stock, sku_sales = [], [], []
                     periods, sales_vals, profit_vals = [], [], []
                     for i, r in enumerate(rows):
                         sku = r.get(headers_lower.get("sku", ""), f"SKU-{i+1}")
                         cost = float(r.get(headers_lower.get("unit_cost_usd", ""), 5) or 5)
-                        price = float(r.get(headers_lower.get("retail_price_usd", ""), 20) or 20)
+                        price = float(r.get(headers_lower.get("retail_price_usd", ""), 20) or 20) * (1 + price_adj/100.0)
                         stock = float(r.get(headers_lower.get("stock_on_hand", ""), 10) or 10)
                         wk_sold = float(r.get(headers_lower.get("weekly_units_sold", ""), 7) or 7)
                         rev_item = price * wk_sold
-                        prof_item = (price - cost - (price * 0.095)) * wk_sold
+                        prof_item = (price - cost - (price * active_fee_rate)) * wk_sold
                         sku_labels.append(sku)
                         sku_stock.append(int(stock))
                         sku_sales.append(int(wk_sold))
                         periods.append(sku)
                         sales_vals.append(round(rev_item, 2))
                         profit_vals.append(round(prof_item, 2))
-                    st.success(f"Calculated live revenue, profit & stock velocity from `{uploaded_metrics.name}` ({len(rows)} SKUs)!")
-                else:
-                    st.warning("CSV uploaded, but columns did not match `Sales,Profit` or `retail_price_usd,weekly_units_sold`. Showing default demo data.")
+                    st.success(f"Global sync active! Processed {len(rows)} SKUs.")
         except Exception as e:
-            st.error(f"Could not parse uploaded CSV: {e}")
+            st.error(f"Error parsing uploaded CSV: {e}")
 
     sales_fx = [round(v * fx_rate, 2) for v in sales_vals]
     profit_fx = [round(v * fx_rate, 2) for v in profit_vals]
@@ -1243,28 +1315,28 @@ if nav_mode == "📊 Executive Dashboard":
         st.markdown(
             f'<div class="pixel-card"><h4>📅 DAILY PROFIT & BUDGET</h4>'
             f'<div class="big-num" style="color:#ff007f;">{fx_sym}{daily_profit:,.2f}</div>'
-            f'<small>Daily Sales: {fx_sym}{daily_sales:,.2f} · Budget: {fx_sym}{daily_budget_fx:,.0f}/day</small></div>',
+            f'<small>Sales: {fx_sym}{daily_sales:,.2f} · Budget: {fx_sym}{daily_budget_fx:,.0f}/day</small></div>',
             unsafe_allow_html=True,
         )
     with k2:
         st.markdown(
             f'<div class="pixel-card"><h4>🗓️ MONTHLY PROFIT & BUDGET</h4>'
             f'<div class="big-num" style="color:#00f0ff;">{fx_sym}{monthly_profit:,.2f}</div>'
-            f'<small>Monthly Sales: {fx_sym}{monthly_sales:,.0f} · Budget: {fx_sym}{monthly_budget_fx:,.0f}/mo</small></div>',
+            f'<small>Sales: {fx_sym}{monthly_sales:,.0f} · Budget: {fx_sym}{monthly_budget_fx:,.0f}/mo</small></div>',
             unsafe_allow_html=True,
         )
     with k3:
         st.markdown(
             f'<div class="pixel-card"><h4>📆 ANNUAL PROFIT & BUDGET</h4>'
             f'<div class="big-num" style="color:#39ff14;">{fx_sym}{annual_profit:,.2f}</div>'
-            f'<small>Annual Sales: {fx_sym}{annual_sales:,.0f} · Budget: {fx_sym}{annual_budget_fx:,.0f}/yr</small></div>',
+            f'<small>Sales: {fx_sym}{annual_sales:,.0f} · Budget: {fx_sym}{annual_budget_fx:,.0f}/yr</small></div>',
             unsafe_allow_html=True,
         )
     with k4:
         st.markdown(
             f'<div class="pixel-card"><h4>💰 PERIOD GROSS SALES</h4>'
             f'<div class="big-num" style="color:#ffe600;">{fx_sym}{total_sales_period:,.2f}</div>'
-            f'<small>Period Net Profit: {fx_sym}{total_profit_period:,.2f} ({margin_pct}% margin)</small></div>',
+            f'<small>Net Profit: {fx_sym}{total_profit_period:,.2f} ({margin_pct}% margin)</small></div>',
             unsafe_allow_html=True,
         )
 
@@ -1287,9 +1359,23 @@ if nav_mode == "📊 Executive Dashboard":
         d_ratio = min(1.0, daily_sales / max(1.0, daily_budget_fx))
         m_ratio = min(1.0, monthly_sales / max(1.0, monthly_budget_fx))
         a_ratio = min(1.0, annual_sales / max(1.0, annual_budget_fx))
-        st.progress(d_ratio, text=f"Daily Sales vs. Daily Budget ({fx_sym}{daily_sales:,.0f} / {fx_sym}{daily_budget_fx:,.0f}) — {int(d_ratio*100)}%")
-        st.progress(m_ratio, text=f"Monthly Projected vs. Monthly Budget ({fx_sym}{monthly_sales:,.0f} / {fx_sym}{monthly_budget_fx:,.0f}) — {int(m_ratio*100)}%")
-        st.progress(a_ratio, text=f"Annual Projected vs. Annual Budget ({fx_sym}{annual_sales:,.0f} / {fx_sym}{annual_budget_fx:,.0f}) — {int(a_ratio*100)}%")
+        st.progress(d_ratio, text=f"Daily Sales ({fx_sym}{daily_sales:,.0f} / {fx_sym}{daily_budget_fx:,.0f}) — {int(d_ratio*100)}%")
+        st.progress(m_ratio, text=f"Monthly Projected ({fx_sym}{monthly_sales:,.0f} / {fx_sym}{monthly_budget_fx:,.0f}) — {int(m_ratio*100)}%")
+        st.progress(a_ratio, text=f"Annual Projected ({fx_sym}{annual_sales:,.0f} / {fx_sym}{annual_budget_fx:,.0f}) — {int(a_ratio*100)}%")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="pixel-panel">', unsafe_allow_html=True)
+        st.markdown("#### 📥 1-Click Downloadable Business Exports")
+        ex1, ex2, ex3 = st.columns(3)
+        with ex1:
+            po_text = generate_supplier_po(workspaces["Level 3: Ops & PO Room"])
+            st.download_button("⬇️ Download PO", data=po_text, file_name="supplier_purchase_order.txt", mime="text/plain", use_container_width=True)
+        with ex2:
+            tax_text = generate_schedule_c_pl(active_inventory_csv, active_fee_rate)
+            st.download_button("⬇️ Schedule C P&L", data=tax_text, file_name="schedule_c_summary.txt", mime="text/plain", use_container_width=True)
+        with ex3:
+            list_csv = generate_shopify_etsy_listing_csv("Artisan Ceramic Mug", f"{28.00*(1+price_adj/100.0):.2f}", "Kitchen & Dining")
+            st.download_button("⬇️ Listing CSV", data=list_csv, file_name="bulk_listings.csv", mime="text/csv", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown('<div class="pixel-panel">', unsafe_allow_html=True)
@@ -1298,43 +1384,39 @@ if nav_mode == "📊 Executive Dashboard":
         with sc1:
             comp_query = st.text_input("Product or SKU to benchmark:", "Hand-Poured Lavender Soy Candle", label_visibility="collapsed")
         with sc2:
-            run_serp = st.button("Check Competitors", type="primary", use_container_width=True)
+            run_serp = st.button("Check Market", type="primary", use_container_width=True)
         if run_serp:
             st.markdown(fetch_serpapi_competitor_pricing(comp_query))
         st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown('<div class="pixel-panel">', unsafe_allow_html=True)
-        st.markdown("#### 🏛️ State Sales-Tax Economic Nexus Calculator")
-        nx_state = st.selectbox("Select State to Verify Economic Nexus Threshold ($100,000 / 200 tx):", ["California ($500k threshold)", "New York ($500k threshold)", "Texas ($500k threshold)", "Florida ($100k threshold)", "Illinois ($100k threshold)"])
-        threshold = 500000.0 if "$500k" in nx_state else 100000.0
-        usd_annual_sales = annual_sales / fx_rate
-        nx_pct = min(1.0, usd_annual_sales / threshold)
-        st.progress(nx_pct, text=f"{nx_state}: ${usd_annual_sales:,.0f} /${threshold:,.0f} ({int(nx_pct*100)}%)")
-        st.markdown('</div>', unsafe_allow_html=True)
-
     with dash_right:
         st.markdown('<div class="pixel-panel">', unsafe_allow_html=True)
-        st.markdown("#### ✅ Seller Task List / To-Do List")
-        todos = st.session_state["dashboard_todos"]
+        st.markdown("#### ✅ Persistent Seller To-Do List (+50 XP per Task)")
+        todos = db_load_todos()
         done_count = 0
-        for idx, item in enumerate(todos):
-            checked = st.checkbox(item["task"], value=item["done"], key=f"todo_chk_{idx}")
-            todos[idx]["done"] = checked
+        for item in todos:
+            checked = st.checkbox(item["task"], value=item["done"], key=f"todo_db_{item['id']}")
+            if checked != item["done"]:
+                db_save_todo_status(item["id"], checked)
+                if checked:
+                    add_xp(50)
+                st.rerun()
             if checked:
                 done_count += 1
         st.progress(done_count / max(1, len(todos)), text=f"Task Completion: {done_count} / {len(todos)} Done")
 
         new_task_col1, new_task_col2 = st.columns([2.2, 1.0])
         with new_task_col1:
-            new_task_txt = st.text_input("Add new task", placeholder="Add a new seller task...", label_visibility="collapsed")
+            new_task_txt = st.text_input("Add task", placeholder="Add a new seller task...", label_visibility="collapsed")
         with new_task_col2:
-            if st.button("➕ Add Task", use_container_width=True) and new_task_txt.strip():
-                st.session_state["dashboard_todos"].append({"task": new_task_txt.strip(), "done": False})
+            if st.button("➕ Add", use_container_width=True) and new_task_txt.strip():
+                db_add_todo(new_task_txt.strip())
+                add_xp(25)
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
         with st.expander("🔮 TabPFN-3.5 EOQ Restock & Schedule C Summary", expanded=True):
-            st.markdown(run_tabpfn_inventory_forecast(active_inventory_csv))
+            st.markdown(run_tabpfn_inventory_forecast(active_inventory_csv, active_fee_rate))
 
 else:
     st.markdown(
@@ -1342,15 +1424,15 @@ else:
         <div class="pixel-header-box">
           <div>
             <h1>MARKETING IS OUR ART<br><span style="color:#00f0ff;font-size:0.65em;">SUCCESS IS YOUR REALITY · {info['level']}</span></h1>
-            <p>Private AI back-office for Etsy, eBay &amp; Shopify. Forecast stockouts with TabPFN-3.5, generate Schedule C P&amp;L reports, and talk to {info['name']} by voice or text.</p>
+            <p>Private AI back-office for Etsy, eBay &amp; Shopify. Globally synced with your dashboard CSV data. Talk to {info['name']} by voice or text.</p>
             <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
               <span class="pixel-badge">🎮 Active: {info['name']} ({mode})</span>
               <span class="pixel-badge" style="background:#00f0ff;color:#111115 !important;">🧠 {data['last_model_used']}</span>
-              <span class="pixel-badge">🔮 TabPFN-3.5 EOQ</span>
+              <span class="pixel-badge">⭐ XP: {st.session_state['seller_xp']}</span>
             </div>
           </div>
           <div>
-            <span class="pixel-badge" style="background:#111118;color:#00f0ff;border-color:#00f0ff;">♥ ♥ ♥ LEVEL ACTIVE</span>
+            <span class="pixel-badge" style="background:#111118;color:#00f0ff;border-color:#00f0ff;">♥ ♥ ♥ SYNCED ACTIVE</span>
           </div>
         </div>
         """,
@@ -1360,13 +1442,11 @@ else:
     col_left, col_center, col_right = st.columns([1.0, 1.32, 1.08], gap="medium")
 
     with col_left:
-        st.markdown("#### 📦 Seller Data & Workflows")
-        if st.button("🔮 Load Demo CSV + Run TabPFN", use_container_width=True, type="primary"):
-            data["file_text"] = SAMPLE_SELLER_CSV
-            data["file_name"] = "demo.csv"
-            data["tabpfn_report"] = run_tabpfn_inventory_forecast(SAMPLE_SELLER_CSV)
-            data["schedule_c_pl"] = generate_schedule_c_pl(SAMPLE_SELLER_CSV)
-            process_message(mode, data, "Summarize critical stockout risks, EOQ reorder quantities, and net profits.", ref=True)
+        st.markdown("#### 📦 Globally Synced Seller Data")
+        if st.button("🔮 Run TabPFN Forecast on Synced CSV", use_container_width=True, type="primary"):
+            data["tabpfn_report"] = run_tabpfn_inventory_forecast(data["file_text"], active_fee_rate)
+            data["schedule_c_pl"] = generate_schedule_c_pl(data["file_text"], active_fee_rate)
+            process_message(mode, data, "Review globally synced shop inventory and highlight top restock actions.", ref=True)
             st.rerun()
 
         act1, act2 = st.columns(2)
@@ -1376,7 +1456,7 @@ else:
                 st.rerun()
         with act2:
             if st.button("🏷️ Export CSV", use_container_width=True):
-                data["exported_listing_csv"] = generate_shopify_etsy_listing_csv("Artisan Ceramic Mug", "28.00", "Kitchen")
+                data["exported_listing_csv"] = generate_shopify_etsy_listing_csv("Artisan Ceramic Mug", f"{28.00*(1+active_fee_rate):.2f}", "Kitchen")
                 st.rerun()
 
         if data.get("tabpfn_report"):
@@ -1401,7 +1481,7 @@ else:
         thread = st.container(height=340)
         with thread:
             if not data["messages"]:
-                st.info(f"Type below, click **🎙️ Speak to AI**, or click **🔮 Load Demo CSV** on the left.")
+                st.info(f"Type below or click **🎙️ Speak to AI** to talk to {info['name']}.")
             for m in data["messages"]:
                 with st.chat_message(m["role"]):
                     st.markdown(m["content"])
@@ -1414,5 +1494,5 @@ else:
             send = st.form_submit_button("Send Question →", type="primary", use_container_width=True)
         if send and prompt.strip():
             with st.spinner("Processing level..."):
-                process_message(mode, data, prompt, ref=bool(data["file_text"]))
+                process_message(mode, data, prompt, ref=True)
             st.rerun()
