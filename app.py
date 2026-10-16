@@ -581,3 +581,4 @@ with col_right:
             process_message(mode, data, prompt, ref=bool(data["file_text"]))
         st.rerun()
 
+
