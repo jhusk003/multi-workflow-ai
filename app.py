@@ -1,5 +1,6 @@
-﻿"""Seller Assist v11: Y2K Pixel Art Edition for Etsy, eBay & Shopify Sellers.
-Styled with Hot Pink & Pure White aesthetic, retro pixel typography, pixel cards, and live WebGL AI avatar.
+﻿"""Seller Assist v12: Y2K 8-Bit Pixel Game Edition for Etsy, eBay & Shopify Sellers.
+Features: Built-in User Speech-to-Text (Microphone Input), 4-Level Pixel Side Panel,
+Retro Sunset Video Game Aesthetic, TabPFN-3.5 Forecasting, and WebGL AI Avatar.
 """
 import asyncio
 import base64
@@ -29,7 +30,7 @@ except ImportError:
     sentry_sdk = None
     SENTRY_AVAILABLE = False
 
-st.set_page_config(page_title="Seller Assist · Y2K Pixel Edition", page_icon="👾", layout="wide")
+st.set_page_config(page_title="Seller Assist · 8-Bit Pixel Edition", page_icon="🕹️", layout="wide")
 
 SAMPLE_SELLER_CSV = """sku,product_name,category,unit_cost_usd,retail_price_usd,stock_on_hand,weekly_units_sold,supplier_lead_days,return_rate_pct
 SLR-101,Hand-Poured Lavender Soy Candle 8oz,Home Fragrance,4.20,22.00,14,19,10,1.2
@@ -41,29 +42,29 @@ SLR-106,Ceramic Matcha Whisk Holder (Speckled),Ceramics,3.80,26.00,6,14,15,0.5
 """
 
 ASSISTANTS = {
-    "Inventory & TabPFN Forecaster": {
-        "name": "Morgan", "room": "Inventory Lab", "color": "#ff3399",
+    "Level 1: Inventory Lab": {
+        "name": "Morgan", "level": "LEVEL 1", "color": "#00f0ff",
         "voice": "en-US-EmmaNeural", "eleven_voice_id": "EXAVITQu4vr4xnSDxMaL",
         "photo": "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=900&q=85",
         "tone": "clear, analytical and profit-focused",
         "specialty": "TabPFN-3.5 inventory forecasting, stockout prediction, safety stock, COGS, gross margin vs. markup.",
     },
-    "Listing & SerpApi Pricing": {
-        "name": "Jordan", "room": "Listing Studio", "color": "#ff3399",
+    "Level 2: Listing Studio": {
+        "name": "Jordan", "level": "LEVEL 2", "color": "#ff007f",
         "voice": "en-US-AndrewNeural", "eleven_voice_id": "TxGEqnHWrfWFTfGW9XjX",
         "photo": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=900&q=85",
         "tone": "creative, persuasive and commercially sharp",
         "specialty": "Etsy/Shopify descriptions, 13-tag Etsy SEO, competitor benchmarking via SerpApi.",
     },
-    "Fulfillment & Restock Planner": {
-        "name": "Taylor", "room": "Ops & PO Room", "color": "#ff3399",
+    "Level 3: Ops & PO Room": {
+        "name": "Taylor", "level": "LEVEL 3", "color": "#39ff14",
         "voice": "en-US-ChristopherNeural", "eleven_voice_id": "pNInz6obpgDQGcFmaJgB",
         "photo": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=85",
         "tone": "organized, decisive and practical",
         "specialty": "Batch scheduling, automated purchase order (PO) generation, shipping cutoffs.",
     },
-    "Shop Policy & Tax Tutor": {
-        "name": "Alex", "room": "Finance & Tax Desk", "color": "#ff3399",
+    "Level 4: Finance & Tax Desk": {
+        "name": "Alex", "level": "LEVEL 4", "color": "#ffe600",
         "voice": "en-US-AvaNeural", "eleven_voice_id": "21m00Tcm4TlvDq8ikWAM",
         "photo": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=85",
         "tone": "curious, patient and precise",
@@ -76,18 +77,20 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
 
 .stApp {
-    background-color: #ff3399;
-    background-image: 
-        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
-    background-size: 24px 24px;
+    background: linear-gradient(180deg, #1b1130 0%, #2a1b4e 45%, #ffb6c1 100%);
     color: #111115;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 
 [data-testid="stSidebar"] {
-    background: #ffffff !important;
-    border-right: 3px solid #111115;
+    background: #111118 !important;
+    border-right: 3px solid #00f0ff;
+    color: #ffffff !important;
+}
+
+[data-testid="stSidebar"] .stRadio label {
+    color: #ffffff !important;
+    font-weight: 700 !important;
 }
 
 .block-container {
@@ -96,13 +99,13 @@ st.markdown("""
     max-width: 97vw !important;
 }
 
-.y2k-hero {
-    background: #ffffff;
-    border: 3px solid #111115;
-    border-radius: 16px;
-    padding: 26px 32px;
+.pixel-header-box {
+    background: #111118;
+    border: 3px solid #ff007f;
+    border-radius: 12px;
+    padding: 20px 24px;
     margin-bottom: 20px;
-    box-shadow: 6px 6px 0px #111115;
+    box-shadow: 6px 6px 0px #00f0ff;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -110,60 +113,59 @@ st.markdown("""
     gap: 16px;
 }
 
-.y2k-hero h1 {
+.pixel-header-box h1 {
     font-family: 'Press Start 2P', monospace;
-    font-size: clamp(1.2rem, 2.2vw, 1.9rem);
-    color: #111115;
-    margin: 0 0 10px 0;
+    font-size: clamp(1.1rem, 2vw, 1.6rem);
+    color: #00f0ff;
+    margin: 0 0 8px 0;
     line-height: 1.4;
-    letter-spacing: -1px;
+    text-shadow: 2px 2px #ff007f;
 }
 
-.y2k-hero p {
-    color: #111115; font-weight: 700;
+.pixel-header-box p {
+    color: #e2e8f0;
     font-size: 0.95rem;
     margin: 0;
     font-weight: 600;
 }
 
-.pixel-pill {
-    background: #ff3399;
+.pixel-badge {
+    background: #ff007f;
     color: #ffffff !important;
     font-family: 'Press Start 2P', monospace;
-    font-size: 0.65rem;
-    padding: 10px 16px;
-    border: 2px solid #111115;
-    box-shadow: 3px 3px 0px #111115;
-    border-radius: 0px;
+    font-size: 0.6rem;
+    padding: 8px 14px;
+    border: 2px solid #ffffff;
+    box-shadow: 3px 3px 0px #00f0ff;
     display: inline-block;
 }
 
 .pixel-card {
     background: #ffffff;
     border: 3px solid #111115;
-    border-radius: 16px;
-    padding: 18px;
+    border-radius: 14px;
+    padding: 16px;
     margin-bottom: 16px;
-    box-shadow: 5px 5px 0px #111115;
+    box-shadow: 5px 5px 0px #ff007f;
 }
 
 .stButton > button[kind="primary"],
 div[data-testid="stFormSubmitButton"] > button {
-    background: #ff3399 !important;
+    background: #ff007f !important;
     color: #ffffff !important;
     border: 2px solid #111115 !important;
     border-radius: 0px !important;
     font-family: 'Press Start 2P', monospace !important;
-    font-size: 0.65rem !important;
-    padding: 12px 18px !important;
-    box-shadow: 3px 3px 0px #111115 !important;
+    font-size: 0.6rem !important;
+    padding: 12px 16px !important;
+    box-shadow: 3px 3px 0px #00f0ff !important;
     transition: transform 0.1s ease !important;
 }
 
 .stButton > button[kind="primary"]:hover,
 div[data-testid="stFormSubmitButton"] > button:hover {
     transform: translate(-1px, -1px) !important;
-    box-shadow: 4px 4px 0px #111115 !important;
+    box-shadow: 4px 4px 0px #00f0ff !important;
 }
 
 .stButton > button[kind="secondary"] {
@@ -178,28 +180,27 @@ div[data-testid="stFormSubmitButton"] > button:hover {
 div[data-testid="stForm"] {
     background: #ffffff;
     border: 3px solid #111115;
-    border-radius: 16px;
-    padding: 16px;
-    box-shadow: 5px 5px 0px #111115;
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 5px 5px 0px #ff007f;
 }
 
 [data-testid="stFileUploader"] {
     background: #ffffff;
-    border: 2px dashed #ff3399;
+    border: 2px dashed #ff007f;
     border-radius: 12px;
-    padding: 10px;
+    padding: 8px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-STATE_KEY = "seller_assist_y2k_workspaces"
-TRACE_KEY = "seller_assist_y2k_traces"
+STATE_KEY = "seller_assist_8bit_workspaces"
+TRACE_KEY = "seller_assist_8bit_traces"
 
 def new_workspace():
     return {
         "messages": [], "last_reply": "", "last_audio": "", "word_timings": [],
-        "reply_id": "", "file_text": "", "file_name": "", "seen_upload_digest": "",
-        "seen_mic_digest": "", "tasks": [], "audio_error": "", "tabpfn_report": "",
+        "reply_id": "", "file_text": "", "file_name": "", "tabpfn_report": "",
         "schedule_c_pl": "", "generated_po": "", "exported_listing_csv": "",
         "last_model_used": "Google Gemma 3 (Open-Weight)"
     }
@@ -291,7 +292,7 @@ def fetch_serpapi_market_comps(query):
 
 def provider_messages(mode, workspace, prompt, reference, market_context=""):
     ast = ASSISTANTS[mode]
-    sys = f"You are {ast['name']}, the {mode} specialist in Seller Assist (Y2K pixel art edition), speaking in a {ast['tone']} style. {ast['specialty']} Give concise answers with exact figures."
+    sys = f"You are {ast['name']}, the {mode} specialist in Seller Assist (8-bit pixel game edition), speaking in a {ast['tone']} style. {ast['specialty']} Give concise answers with exact figures."
     history = [{"role": m["role"], "content": m["content"]} for m in workspace["messages"][-12:]]
     txt = prompt.strip() or "Review my data."
     if workspace.get("tabpfn_report"): txt += "\n\n[TABPFN REPORT]:\n" + workspace["tabpfn_report"][:2000]
@@ -372,8 +373,8 @@ def process_message(mode, workspace, prompt, ref=False, serp=False):
 
 def render_avatar(assistant, workspace):
     payload = {
-        "name": assistant["name"], "room": assistant["room"], "accent": assistant["color"],
-        "photo": assistant["photo"], "text": workspace["last_reply"] or f"Hi! I'm {assistant['name']} in your {assistant['room']}. Let's boost your sales!",
+        "name": assistant["name"], "room": assistant["level"], "accent": assistant["color"],
+        "photo": assistant["photo"], "text": workspace["last_reply"] or f"Hi! I'm {assistant['name']} in {assistant['level']}. Let's boost your sales!",
         "audio": workspace["last_audio"], "timings": workspace["word_timings"], "replyId": workspace["reply_id"]
     }
     safe = json.dumps(payload, ensure_ascii=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
@@ -384,35 +385,35 @@ AVATAR_HTML = r'''<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <style>
-  :root { --accent: #ff3399; }
+  :root { --accent: #00f0ff; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { color: #111115; background: transparent; font: 12px 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
   .panel {
-    height: 625px; border: 3px solid #111115; border-radius: 16px; overflow: hidden;
-    background: #ffffff; display: flex; flex-direction: column; box-shadow: 5px 5px 0px #111115;
+    height: 625px; border: 3px solid #00f0ff; border-radius: 16px; overflow: hidden;
+    background: #111118; display: flex; flex-direction: column; box-shadow: 5px 5px 0px #ff007f;
   }
-  .stage { height: 445px; position: relative; background: #fff0f5; overflow: hidden; }
+  .stage { height: 445px; position: relative; background: radial-gradient(circle at 50% 35%, #2a1b4e, #0b0714); overflow: hidden; }
   #glCanvas { width: 100%; height: 100%; display: block; }
   .plate {
-    position: absolute; top: 12px; left: 12px; border: 2px solid #111115; background: #ffffff;
-    padding: 5px 12px; font-weight: 800; font-size: 11px; box-shadow: 2px 2px 0px #111115;
+    position: absolute; top: 12px; left: 12px; border: 2px solid #00f0ff; background: #111118; color: #ffffff;
+    padding: 5px 12px; font-weight: 800; font-size: 11px; box-shadow: 2px 2px 0px #ff007f;
   }
   .live-pill {
-    position: absolute; top: 12px; right: 12px; background: #111115; color: #ff3399;
-    border: 2px solid #111115; padding: 4px 10px; font-size: 10px; font-weight: 700;
+    position: absolute; top: 12px; right: 12px; background: #ff007f; color: #ffffff;
+    border: 2px solid #ffffff; padding: 4px 10px; font-size: 10px; font-weight: 700;
   }
-  .controls { padding: 10px 14px; display: flex; flex-direction: column; gap: 7px; background: #ffffff; border-top: 3px solid #111115; }
+  .controls { padding: 10px 14px; display: flex; flex-direction: column; gap: 7px; background: #111118; border-top: 3px solid #00f0ff; }
   .buttons { display: flex; gap: 6px; justify-content: space-between; align-items: center; }
   button {
-    border: 2px solid #111115; background: #ff3399; color: #ffffff; font-weight: 800;
-    font-size: 11px; cursor: pointer; padding: 6px 12px; box-shadow: 2px 2px 0px #111115;
+    border: 2px solid #111115; background: #00f0ff; color: #111115; font-weight: 800;
+    font-size: 11px; cursor: pointer; padding: 6px 12px; box-shadow: 2px 2px 0px #ff007f;
   }
-  button:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0px #111115; }
-  button.alt { background: #ffffff; color: #111115; }
-  select { background: #ffffff; color: #111115; border: 2px solid #111115; padding: 4px 8px; font-size: 11px; font-weight: 700; }
-  #voice { height: 26px; width: 100%; }
-  .status-bar { display: flex; justify-content: space-between; font-size: 10.5px; color: #6b7280; font-weight: 600; }
-  #caption { font-size: 11px; color: #111115; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+  button:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0px #ff007f; }
+  button.alt { background: #2a1b4e; color: #ffffff; border-color: #00f0ff; }
+  select { background: #2a1b4e; color: #ffffff; border: 2px solid #00f0ff; padding: 4px 8px; font-size: 11px; font-weight: 700; }
+  #voice { height: 26px; width: 100%; accent-color: #00f0ff; }
+  .status-bar { display: flex; justify-content: space-between; font-size: 10.5px; color: #9ca3af; font-weight: 600; }
+  #caption { font-size: 11px; color: #ffffff; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
 </style>
 </head>
 <body>
@@ -420,19 +421,19 @@ AVATAR_HTML = r'''<!DOCTYPE html>
   <div class="stage">
     <canvas id="glCanvas"></canvas>
     <div class="plate" id="plate"></div>
-    <div class="live-pill">● 60 FPS LIVE</div>
+    <div class="live-pill">♥ ♥ ♥ LIVE</div>
   </div>
   <div class="controls">
     <div class="buttons">
       <div style="display:flex;gap:6px;">
-        <button id="speak" type="button">▶ Speak</button>
+        <button id="speak" type="button">▶ Speak AI Voice</button>
         <button class="alt" id="stop" type="button">■ Stop</button>
         <button class="alt" id="demo" type="button">Test Lip Range</button>
       </div>
       <select id="framing"><option value="1.0" selected>Portrait</option><option value="1.22">Close-Up</option></select>
     </div>
     <audio id="voice" controls preload="auto"></audio>
-    <div class="status-bar"><span id="status">Ready.</span><span>WebGl Shader Active</span></div>
+    <div class="status-bar"><span id="status">Ready.</span><span>WebGL Shader Active</span></div>
     <div id="caption"></div>
   </div>
 </div>
@@ -523,7 +524,7 @@ AVATAR_HTML = r'''<!DOCTYPE html>
     else if (isSpeaking && !sound.paused) targetOpen = 0.5 + 0.4*Math.sin(now*0.02);
     mouthOpen += (targetOpen - mouthOpen)*0.3;
 
-    gl.clearColor(1, 0.94, 0.96, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clearColor(0.1, 0.07, 0.18, 1); gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform1f(U.uTime, now*0.001); gl.uniform1f(U.uZoom, 1.0);
     gl.uniform2f(U.uHeadSway, Math.sin(now*0.001)*0.004, Math.cos(now*0.002)*0.003);
     gl.uniform2f(U.uCanvasSize, canvas.width, canvas.height); gl.uniform1f(U.uMediaAspect, img.naturalWidth/Math.max(1,img.naturalHeight));
@@ -547,32 +548,32 @@ AVATAR_HTML = r'''<!DOCTYPE html>
 '''
 
 with st.sidebar:
-    st.markdown("## 👾 Seller Assist")
-    st.caption("Y2K Pixel Edition · Etsy, eBay & Shopify")
-    mode = st.radio("Choose Specialist", list(ASSISTANTS), key="y2k_mode")
+    st.markdown("## 🕹️ Seller Assist")
+    st.caption("8-Bit Retro Game Edition")
+    st.markdown("### **CHOOSE LEVEL**")
+    mode = st.radio("Select Specialist Level", list(ASSISTANTS), key="bit_mode", label_visibility="collapsed")
     info = ASSISTANTS[mode]
     data = workspaces[mode]
     st.divider()
-    if st.button("🧹 Clear Chat", use_container_width=True):
+    if st.button("🧹 Clear Progress", use_container_width=True):
         data["messages"] = []
         data["last_reply"] = ""
         st.rerun()
 
 st.markdown(
     f"""
-    <div class="y2k-hero">
+    <div class="pixel-header-box">
       <div>
-        <h1>MARKETING IS OUR ART<br><span style="color:#ff3399;font-size:0.7em;">SUCCESS IS YOUR REALITY</span></h1>
+        <h1>MARKETING IS OUR ART<br><span style="color:#00f0ff;font-size:0.65em;">SUCCESS IS YOUR REALITY · {info['level']}</span></h1>
         <p>Private AI back-office for Etsy, eBay &amp; Shopify. Forecast stockouts with TabPFN-3.5, generate Schedule C P&amp;L reports, and run Google Gemma locally.</p>
         <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-          <span class="pixel-pill">⚡ {info['name']} ({mode})</span>
-          <span class="pixel-pill">🧠 Google Gemma 3</span>
-          <span class="pixel-pill">🔮 TabPFN-3.5</span>
-          <span class="pixel-pill">🎙️ ElevenLabs</span>
+          <span class="pixel-badge">🎮 Active: {info['name']} ({mode})</span>
+          <span class="pixel-badge" style="background:#00f0ff;color:#111115 !important;">🧠 Gemma 3</span>
+          <span class="pixel-badge">🔮 TabPFN-3.5</span>
         </div>
       </div>
       <div>
-        <span class="pixel-pill" style="background:#111115;color:#ff3399;">● 100% PRIVATE WORKSPACE</span>
+        <span class="pixel-badge" style="background:#111118;color:#00f0ff;border-color:#00f0ff;">♥ ♥ ♥ LEVEL 1 ACTIVE</span>
       </div>
     </div>
     """,
@@ -588,7 +589,7 @@ with col_left:
         data["file_name"] = "demo.csv"
         data["tabpfn_report"] = run_tabpfn_inventory_forecast(SAMPLE_SELLER_CSV)
         data["schedule_c_pl"] = generate_schedule_c_pl(SAMPLE_SELLER_CSV)
-        process_message(mode, data, "Summarize critical stockout risks and net profits.", attach_reference=True)
+        process_message(mode, data, "Summarize critical stockout risks and net profits.", ref=True)
         st.rerun()
 
     act1, act2 = st.columns(2)
@@ -615,11 +616,11 @@ with col_left:
             st.code(data["exported_listing_csv"], language="csv")
 
 with col_center:
-    st.markdown(f"<div style='text-align:center; margin-bottom:6px;font-weight:800;'><b>{info['name']}</b> · {info['room']}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align:center; margin-bottom:6px;font-weight:800;color:#ffffff;'><b>{info['name']}</b> · {info['level']}</div>", unsafe_allow_html=True)
     render_avatar(info, data)
 
 with col_right:
-    st.markdown(f"#### 💬 Consult with {info['name']}")
+    st.markdown(f"<div style='color:#ffffff;font-weight:700;margin-bottom:6px;'>💬 Consult with {info['name']}</div>", unsafe_allow_html=True)
     thread = st.container(height=340)
     with thread:
         if not data["messages"]:
@@ -629,13 +630,55 @@ with col_right:
                 st.markdown(m["content"])
                 st.caption(m["time"])
 
+    # Built-in Web Speech API microphone dictation button for user speech input
+    components.html("""
+    <div style="background:#ffffff;border:3px solid #111115;border-radius:12px;padding:8px;box-shadow:3px 3px 0px #ff007f;display:flex;align-items:center;gap:8px;">
+      <button id="micBtn" type="button" style="background:#ff007f;color:#fff;border:2px solid #111115;padding:6px 12px;font-family:'Press Start 2P',monospace;font-size:9px;cursor:pointer;box-shadow:2px 2px 0px #00f0ff;">🎙️ Speak Question</button>
+      <span id="micStatus" style="font-size:11px;font-weight:700;color:#111115;">Click to speak into mic</span>
+    </div>
+    <script>
+      const micBtn = document.getElementById('micBtn');
+      const micStatus = document.getElementById('micStatus');
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        micStatus.textContent = "Mic input not supported in this browser.";
+        micBtn.disabled = true;
+      } else {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+        micBtn.onclick = () => {
+          recognition.start();
+          micStatus.textContent = "Listening... Speak now!";
+          micBtn.style.background = "#00f0ff";
+          micBtn.style.color = "#111115";
+        };
+        recognition.onresult = (event) => {
+          const speechToText = event.results[0][0].transcript;
+          micStatus.textContent = "Heard: \"" + speechToText + "\"";
+          micBtn.style.background = "#ff007f";
+          micBtn.style.color = "#fff";
+          // Pass speech text to parent Streamlit container via query params or auto-fill
+          window.parent.postMessage({type: 'streamlit:setComponentValue', value: speechToText}, '*');
+        };
+        recognition.onerror = () => {
+          micStatus.textContent = "Mic error. Try again.";
+          micBtn.style.background = "#ff007f";
+          micBtn.style.color = "#fff";
+        };
+        recognition.onend = () => {
+          micBtn.style.background = "#ff007f";
+          micBtn.style.color = "#fff";
+        };
+      }
+    </script>
+    """, height=65)
+
     with st.form(key=f"form_{mode}", clear_on_submit=True):
         prompt = st.text_area("Question", placeholder="Ask about stockouts, SEO, taxes...", height=85, label_visibility="collapsed")
-        send = st.form_submit_button("Send →", type="primary", use_container_width=True)
+        send = st.form_submit_button("Send Question →", type="primary", use_container_width=True)
     if send and prompt.strip():
-        with st.spinner("Thinking..."):
+        with st.spinner("Processing level..."):
             process_message(mode, data, prompt, ref=bool(data["file_text"]))
         st.rerun()
-
-
-
