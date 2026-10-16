@@ -1,6 +1,6 @@
-﻿"""Seller Assist v12.3: 8-Bit Retro Game Edition for Etsy, eBay & Shopify Sellers.
+﻿"""Seller Assist v12.4: 8-Bit Retro Game Edition for Etsy, eBay & Shopify Sellers.
 Features: 4 Specialist Levels in Sidebar, WebGL Avatar with Accurate Lip & Blink Alignment,
-Voice-to-Text Directly Hooked to Chat Box & AI Brain, TabPFN-3.5 Forecasting,
+Live Voice-to-Text Hooked to React _valueTracker & AI Brain, TabPFN-3.5 Forecasting,
 Schedule C P&L Generator, and Render Ready.
 """
 import asyncio
@@ -546,6 +546,193 @@ AVATAR_HTML = r'''<!DOCTYPE html>
 </html>
 '''
 
+MIC_HTML = r'''<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Plus+Jakarta+Sans:wght@700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif; }
+  .mic-bar {
+    background: #111118;
+    border: 2px solid #00f0ff;
+    padding: 8px 10px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 2px 2px 0px #ff007f;
+  }
+  #micBtn {
+    background: #ff007f;
+    color: #ffffff;
+    border: 2px solid #ffffff;
+    padding: 7px 12px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8.5px;
+    cursor: pointer;
+    box-shadow: 2px 2px 0px #00f0ff;
+    white-space: nowrap;
+  }
+  #micBtn:active { transform: translate(1px, 1px); }
+  #micStatus {
+    font-size: 11px;
+    color: #00f0ff;
+    font-weight: 700;
+    margin-left: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    text-align: right;
+  }
+</style>
+</head>
+<body>
+<div class="mic-bar">
+  <button id="micBtn" type="button">🎙️ Speak to AI</button>
+  <span id="micStatus">Click mic &amp; speak</span>
+</div>
+<script>
+(() => {
+  const micBtn = document.getElementById('micBtn');
+  const micStatus = document.getElementById('micStatus');
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  function setChatTextareaValue(spokenText, shouldSubmit) {
+    try {
+      const parentWin = window.parent;
+      const parentDoc = parentWin.document;
+      const ta = parentDoc.querySelector('div[data-testid="stForm"] textarea') ||
+                 parentDoc.querySelector('textarea[aria-label="Question"]') ||
+                 parentDoc.querySelector('textarea');
+      if (!ta) {
+        micStatus.textContent = 'Chat box not found';
+        return;
+      }
+
+      const lastValue = ta.value;
+      const proto = parentWin.HTMLTextAreaElement ? parentWin.HTMLTextAreaElement.prototype : window.HTMLTextAreaElement.prototype;
+      const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value').set;
+      nativeSetter.call(ta, spokenText);
+
+      if (ta._valueTracker) {
+        ta._valueTracker.setValue(lastValue);
+      }
+
+      ta.focus();
+      ta.dispatchEvent(new parentWin.Event('input', { bubbles: true }));
+      ta.dispatchEvent(new parentWin.Event('change', { bubbles: true }));
+
+      if (shouldSubmit) {
+        ta.dispatchEvent(new parentWin.FocusEvent('blur', { bubbles: true }));
+        ta.blur();
+        setTimeout(() => {
+          const submitBtn = parentDoc.querySelector('div[data-testid="stFormSubmitButton"] button') ||
+                            parentDoc.querySelector('button[kind="primaryFormSubmit"]');
+          if (submitBtn) {
+            submitBtn.click();
+            micStatus.textContent = 'Sent: ' + spokenText;
+          } else {
+            micStatus.textContent = 'Typed! Click Send Question';
+          }
+        }, 350);
+      }
+    } catch (err) {
+      micStatus.textContent = 'Error: ' + err.message;
+    }
+  }
+
+  if (!SpeechRecognition) {
+    micStatus.textContent = 'Use Chrome or Edge for Mic';
+    micBtn.onclick = () => { alert('Browser SpeechRecognition requires Chrome or Edge.'); };
+    return;
+  }
+
+  let recognition = null;
+  let isListening = false;
+  let latestTranscript = '';
+  let hasSubmitted = false;
+
+  micBtn.onclick = () => {
+    if (isListening && recognition) {
+      recognition.stop();
+      return;
+    }
+
+    latestTranscript = '';
+    hasSubmitted = false;
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      isListening = true;
+      micStatus.textContent = '🔴 Listening... Speak now!';
+      micBtn.textContent = '⏹️ Stop & Send';
+      micBtn.style.background = '#00f0ff';
+      micBtn.style.color = '#111115';
+    };
+
+    recognition.onresult = (e) => {
+      let transcript = '';
+      let isFinal = false;
+      for (let i = 0; i < e.results.length; i++) {
+        transcript += e.results[i][0].transcript;
+        if (e.results[i].isFinal) isFinal = true;
+      }
+      latestTranscript = transcript.trim();
+      if (latestTranscript) {
+        micStatus.textContent = 'Hearing: ' + latestTranscript;
+        setChatTextareaValue(latestTranscript, false);
+      }
+      if (isFinal && latestTranscript && !hasSubmitted) {
+        hasSubmitted = true;
+        micStatus.textContent = 'Submitting: ' + latestTranscript;
+        micBtn.style.background = '#39ff14';
+        micBtn.style.color = '#111115';
+        setChatTextareaValue(latestTranscript, true);
+      }
+    };
+
+    recognition.onerror = (e) => {
+      isListening = false;
+      micStatus.textContent = 'Mic error (' + e.error + '). Click to retry.';
+      micBtn.textContent = '🎙️ Speak to AI';
+      micBtn.style.background = '#ff007f';
+      micBtn.style.color = '#ffffff';
+    };
+
+    recognition.onend = () => {
+      isListening = false;
+      micBtn.textContent = '🎙️ Speak to AI';
+      if (latestTranscript && !hasSubmitted) {
+        hasSubmitted = true;
+        micStatus.textContent = 'Submitting: ' + latestTranscript;
+        micBtn.style.background = '#39ff14';
+        micBtn.style.color = '#111115';
+        setChatTextareaValue(latestTranscript, true);
+      }
+      setTimeout(() => {
+        micBtn.style.background = '#ff007f';
+        micBtn.style.color = '#ffffff';
+      }, 1500);
+    };
+
+    try {
+      recognition.start();
+    } catch (err) {
+      micStatus.textContent = 'Mic error: ' + err.message;
+    }
+  };
+})();
+</script>
+</body>
+</html>
+'''
+
 with st.sidebar:
     st.markdown("## 🕹️ Seller Assist")
     st.caption("8-Bit Retro Game Edition")
@@ -629,89 +816,8 @@ with col_right:
                 st.markdown(m["content"])
                 st.caption(m["time"])
 
-    # Microphone Speech-to-Text Directly Hooked into Streamlit Chat Form & Submit Button
-    components.html("""
-    <div style="background:#111118;border:2px solid #00f0ff;padding:8px 10px;border-radius:10px;display:flex;align-items:center;justify-content:space-between;box-shadow:2px 2px 0px #ff007f;">
-      <button id="micBtn" type="button" style="background:#ff007f;color:#fff;border:2px solid #fff;padding:6px 12px;font-family:'Press Start 2P',monospace;font-size:8.5px;cursor:pointer;box-shadow:2px 2px 0px #00f0ff;">🎙️ Speak to AI</button>
-      <span id="micStatus" style="font-size:10.5px;color:#00f0ff;font-weight:700;margin-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Click mic & speak (Auto-Sends)</span>
-    </div>
-    <script>
-      const micBtn = document.getElementById('micBtn');
-      const micStatus = document.getElementById('micStatus');
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-      function injectAndSubmitToStreamlit(spokenText) {
-        try {
-          const parentWin = window.parent;
-          const parentDoc = parentWin.document;
-          const ta = parentDoc.querySelector('div[data-testid="stForm"] textarea') ||
-                     parentDoc.querySelector('textarea[aria-label="Question"]') ||
-                     parentDoc.querySelector('textarea');
-          if (!ta) {
-            micStatus.textContent = "Chat box not found";
-            return;
-          }
-          ta.focus();
-          const proto = parentWin.HTMLTextAreaElement ? parentWin.HTMLTextAreaElement.prototype : window.HTMLTextAreaElement.prototype;
-          const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value').set;
-          nativeSetter.call(ta, spokenText);
-
-          ta.dispatchEvent(new parentWin.Event('input', { bubbles: true }));
-          ta.dispatchEvent(new parentWin.Event('change', { bubbles: true }));
-          ta.dispatchEvent(new parentWin.FocusEvent('blur', { bubbles: true }));
-          ta.blur();
-
-          setTimeout(() => {
-            const submitBtn = parentDoc.querySelector('div[data-testid="stFormSubmitButton"] button') ||
-                              parentDoc.querySelector('button[kind="primaryFormSubmit"]');
-            if (submitBtn) {
-              submitBtn.click();
-              micStatus.textContent = "Sent: \"" + spokenText + "\"";
-            } else {
-              micStatus.textContent = "Typed! Click Send Question →";
-            }
-          }, 250);
-        } catch (err) {
-          micStatus.textContent = "Error: " + err.message;
-        }
-      }
-
-      if (!SpeechRecognition) {
-        micStatus.textContent = "Mic not supported in this browser";
-      } else {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.lang = 'en-US';
-        micBtn.onclick = () => {
-          try {
-            recognition.start();
-            micStatus.textContent = "Listening... Speak now!";
-            micBtn.style.background = "#00f0ff";
-            micBtn.style.color = "#111115";
-          } catch (e) {}
-        };
-        recognition.onresult = (e) => {
-          const txt = e.results[0][0].transcript;
-          micStatus.textContent = "Sending: \"" + txt + "\"...";
-          micBtn.style.background = "#39ff14";
-          micBtn.style.color = "#111115";
-          injectAndSubmitToStreamlit(txt);
-        };
-        recognition.onerror = () => {
-          micStatus.textContent = "Mic error. Try again.";
-          micBtn.style.background = "#ff007f";
-          micBtn.style.color = "#fff";
-        };
-        recognition.onend = () => {
-          setTimeout(() => {
-            micBtn.style.background = "#ff007f";
-            micBtn.style.color = "#fff";
-          }, 1200);
-        };
-      }
-    </script>
-    """, height=52)
+    # Render Raw Microphone Component
+    components.html(MIC_HTML, height=52, scrolling=False)
 
     with st.form(key=f"form_{mode}", clear_on_submit=True):
         prompt = st.text_area("Question", placeholder="Ask about stockouts, SEO, taxes...", height=85, label_visibility="collapsed")
