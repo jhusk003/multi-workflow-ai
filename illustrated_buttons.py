@@ -19,6 +19,9 @@ BUTTON_ASSETS = {
     "sa_image_promo": "promo.webp",
     "sa_image_settings": "settings.webp",
     "sa_image_team": "team.webp",
+    "sa_image_home_inventory": "inventory.webp",
+    "sa_image_home_listing": "listing.webp",
+    "sa_image_home_packing": "packing.webp",
 }
 HERO_ASSET = "town.webp"
 

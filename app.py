@@ -1197,6 +1197,15 @@ MIC_HTML = r"""<!DOCTYPE html>
 </html>
 """
 
+# SELLER ASSIST LAYOUT v20 — apply requested navigation before sidebar widgets exist.
+from seller_town_pages import render_page, PAGES
+if st.session_state.get("nav_selector") not in PAGES:
+    st.session_state["nav_selector"] = "🏡 Home"
+if "sa_page_request" in st.session_state:
+    st.session_state["nav_selector"] = st.session_state.pop("sa_page_request")
+if "sa_mode_request" in st.session_state:
+    st.session_state["bit_mode"] = st.session_state.pop("sa_mode_request")
+
 # Sidebar Navigation with Gamification & Global Settings
 with st.sidebar:
     st.markdown("## ✿ Seller Assist")
@@ -1204,7 +1213,7 @@ with st.sidebar:
     st.markdown("### Explore your workspace")
     nav_mode = st.radio(
         "Select View",
-        ["📊 Executive Dashboard", "🎨 Specialist Rooms (4 AI Models)"],
+        ["🏡 Home", "📦 Inventory Lab", "🎨 Listings & Marketing", "🚚 Orders & Suppliers", "💰 Finance Desk", "📁 Shop Data", "🤖 AI Team", "⚙️ Settings"],
         index=0,
         key="nav_selector",
         label_visibility="collapsed",
@@ -1216,330 +1225,46 @@ with st.sidebar:
     market_choice = st.selectbox("🏷️ Marketplace Fee Model", list(MARKETPLACE_FEES.keys()), index=0)
     active_fee_rate = MARKETPLACE_FEES[market_choice]
 
-    if nav_mode == "🎨 Specialist Rooms (4 AI Models)":
+    if nav_mode == "🤖 AI Team":
         st.markdown("### Meet your specialist")
         mode = st.radio("Select Level", list(ASSISTANTS), key="bit_mode", label_visibility="collapsed")
         info = ASSISTANTS[mode]
         data = workspaces[mode]
 
     st.divider()
-    st.markdown("### Diagnostics")
-    tel = st.session_state["telemetry"]
-    st.caption(f"Sentry SDK: {'Installed (connection unverified)' if SENTRY_AVAILABLE else 'Not installed'}")
-    st.caption(f"Last AI latency: {tel['last_latency_ms']} ms (session counter)")
-    st.caption(f"📡 Brain Calls: {tel['calls']} · Errors: {tel['errors']}")
+    with st.expander("Diagnostics", expanded=False):
+        st.markdown("### Diagnostics")
+        tel = st.session_state["telemetry"]
+        st.caption(f"Sentry SDK: {'Installed (connection unverified)' if SENTRY_AVAILABLE else 'Not installed'}")
+        st.caption(f"Last AI latency: {tel['last_latency_ms']} ms (session counter)")
+        st.caption(f"📡 Brain Calls: {tel['calls']} · Errors: {tel['errors']}")
     st.divider()
-    if st.button("Clear current view", use_container_width=True):
-        if nav_mode == "🎨 Specialist Rooms (4 AI Models)":
-            data["messages"] = []
-            data["last_reply"] = ""
+    if nav_mode == "🤖 AI Team" and st.button("Clear conversation", use_container_width=True):
+        data["messages"] = []
+        data["last_reply"] = ""
         st.rerun()
 
-if nav_mode == "📊 Executive Dashboard":
-    st.markdown(
-        """
-        <div class="kawaii-header">
-          <div>
-            <h1>Your Seller Headquarters<br><span style="color:#7e57c2;font-size:0.65em;">YOUR SHOP AT A GLANCE · BUSINESS TOOLS · AI TEAM</span></h1>
-            <p>See how your shop is doing, find what needs attention, and get practical help from your four AI specialists.</p>
-          </div>
-          <div>
-            <span class="kawaii-badge">⭐ XP: {XP_VAL} LVL 3</span>
-          </div>
-        </div>
-        """.replace("{XP_VAL}", str(st.session_state["seller_xp"])),
-        unsafe_allow_html=True,
-    )
-
-    # Operable Interactive Kawaii Character & Building Cards Matching Your Exact Reference
-    from illustrated_buttons import (
-        inject_illustrated_button_styles,
-        render_illustrated_town_hero,
-        render_town_bonus_panel,
-    )  # SELLER ASSIST TOWN v19
-    inject_illustrated_button_styles()
-    render_illustrated_town_hero()
-    st.markdown("""<div class="sa-village-intro"><div class="eyebrow">✿ Seller town shortcuts</div>
-    <h2>Pick a helper building for the next part of your workflow</h2><p>The first four tools keep their original working actions. The new extras open sample resources and themed helper panels you can build on next.</p>
-    </div>""", unsafe_allow_html=True)
-    st.session_state.setdefault("sa_bonus_panel", "")
-    kc1, kc2 = st.columns(2, gap="medium")
-    kc3, kc4 = st.columns(2, gap="medium")
-    with kc1:
-        if st.button('Inventory Lab — analyze sample inventory', key='sa_image_inventory', help='Analyze a sample inventory file and save the resulting stock report.', use_container_width=True, type="primary"):
-            add_xp(50)
-            workspaces["Level 1: Inventory Lab"]["tabpfn_report"] = run_tabpfn_inventory_forecast(SAMPLE_SELLER_CSV, active_fee_rate)
-            st.success("🐰 Inventory estimate created! (+50 XP)")
-        st.markdown("<div class=\"sa-village-caption\">📦 Sample inventory & restock estimate</div>", unsafe_allow_html=True)
-    with kc2:
-        if st.button('Packing Orders — create purchase order', key='sa_image_packing', help='Generate a sample supplier purchase order in Taylor’s workspace.', use_container_width=True, type="primary"):
-            add_xp(50)
-            workspaces["Level 3: Ops & PO Room"]["generated_po"] = generate_supplier_po(workspaces["Level 3: Ops & PO Room"])
-            st.success("🍞 Smiling Bread House baked a fresh Purchase Order! (+50 XP)")
-        st.markdown("<div class=\"sa-village-caption\">📬 Sample supplier purchase order</div>", unsafe_allow_html=True)
-    with kc3:
-        if st.button('Listing Studio — export sample listing', key='sa_image_listing', help='Create a sample marketplace product listing CSV in Jordan’s workspace.', use_container_width=True, type="primary"):
-            add_xp(50)
-            workspaces["Level 2: Listing Studio"]["exported_listing_csv"] = generate_shopify_etsy_listing_csv("Artisan Ceramic Mug", f"{28.00*(1+active_fee_rate):.2f}", "Kitchen")
-            st.success("🐸 Mailbox Frog delivered your bulk listing CSV export! (+50 XP)")
-        st.markdown("<div class=\"sa-village-caption\">🎨 Sample product listing export</div>", unsafe_allow_html=True)
-    with kc4:
-        if st.button('Market Research — compare product prices', key='sa_image_market', help='Research candle prices. Live SerpApi results require a configured API key.', use_container_width=True, type="primary"):
-            add_xp(50)
-            st.success(fetch_serpapi_competitor_pricing("Hand-Poured Lavender Soy Candle"))
-        st.markdown("<div class=\"sa-village-caption\">🐝 Comparable-product research</div>", unsafe_allow_html=True)
-    ka1, ka2 = st.columns(2, gap="medium")
-    kb1, kb2 = st.columns(2, gap="medium")
-    kc5, kc6 = st.columns(2, gap="medium")
-    with ka1:
-        if st.button('Finance Desk — open finance helper', key='sa_image_finance', help='Open a sample pricing and margin helper.', use_container_width=True, type="primary"):
-            st.session_state["sa_bonus_panel"] = 'finance'
-        st.markdown("<div class=\"sa-village-caption\">💰 Pricing and margin helper</div>", unsafe_allow_html=True)
-    with ka2:
-        if st.button('Supplier Hub — open sourcing helper', key='sa_image_supplier', help='Open a sample supplier shortlist and sourcing notes.', use_container_width=True, type="primary"):
-            st.session_state["sa_bonus_panel"] = 'supplier'
-        st.markdown("<div class=\"sa-village-caption\">📦 Supplier shortlist and sourcing notes</div>", unsafe_allow_html=True)
-    with kb1:
-        if st.button('Customer Messages — open reply starter pack', key='sa_image_messages', help='Open reusable customer support reply starters.', use_container_width=True, type="primary"):
-            st.session_state["sa_bonus_panel"] = 'messages'
-        st.markdown("<div class=\"sa-village-caption\">💌 Customer reply starter pack</div>", unsafe_allow_html=True)
-    with kb2:
-        if st.button('Promo Studio — open promo idea pack', key='sa_image_promo', help='Open reusable promo copy ideas.', use_container_width=True, type="primary"):
-            st.session_state["sa_bonus_panel"] = 'promo'
-        st.markdown("<div class=\"sa-village-caption\">📣 Promo idea pack</div>", unsafe_allow_html=True)
-    with kc5:
-        if st.button('Shop Settings — open future controls panel', key='sa_image_settings', help='Open a planning panel for future store settings.', use_container_width=True, type="primary"):
-            st.session_state["sa_bonus_panel"] = 'settings'
-        st.markdown("<div class=\"sa-village-caption\">⚙️ Future store settings panel</div>", unsafe_allow_html=True)
-    with kc6:
-        if st.button('AI Team — open role map', key='sa_image_team', help='Open a quick map of the four assistants.', use_container_width=True, type="primary"):
-            st.session_state["sa_bonus_panel"] = 'team'
-        st.markdown("<div class=\"sa-village-caption\">🤖 Assistant role guide</div>", unsafe_allow_html=True)
-    render_town_bonus_panel(st.session_state.get("sa_bonus_panel", ""))
-    st.markdown("<div class=\"premium-section\"><span class=\"premium-eyebrow\">Bring your own numbers</span><h2>Shop data &amp; planning</h2><p>Upload your CSV to make your dashboard and specialist tools more relevant.</p></div>", unsafe_allow_html=True)
-
-    up_col1, up_col2 = st.columns([1.35, 1.0], gap="medium")
-    with up_col1:
-        uploaded_metrics = st.file_uploader(
-            "Upload shop CSV · shared with all four specialist rooms",
-            type=["csv"],
-        )
-        dl1, dl2, dl3 = st.columns(3)
-        with dl1:
-            st.download_button(
-                "⬇️ Sample P&L CSV",
-                data=SAMPLE_DASHBOARD_CSV,
-                file_name="financial_metrics.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
-        with dl2:
-            st.download_button(
-                "⬇️ Sample Inventory CSV",
-                data=SAMPLE_SELLER_CSV,
-                file_name="seller_inventory.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
-        with dl3:
-            if st.button("⭐ Claim +150 XP", use_container_width=True):
-                add_xp(150)
-                st.success("Claimed +150 Seller XP!")
-                st.rerun()
-
-    with up_col2:
-        with st.expander("🎯 Configure Budgets & What-If Pricing", expanded=True):
-            b_col1, b_col2, b_col3 = st.columns(3)
-            with b_col1:
-                daily_budget_input = st.number_input("Daily ($)", min_value=10.0, value=float(st.session_state["dash_budgets"]["daily"]), step=50.0)
-            with b_col2:
-                monthly_budget_input = st.number_input("Monthly ($)", min_value=100.0, value=float(st.session_state["dash_budgets"]["monthly"]), step=500.0)
-            with b_col3:
-                annual_budget_input = st.number_input("Annual ($)", min_value=1000.0, value=float(st.session_state["dash_budgets"]["annual"]), step=5000.0)
-            
-            st.session_state["dash_budgets"]["daily"] = daily_budget_input
-            st.session_state["dash_budgets"]["monthly"] = monthly_budget_input
-            st.session_state["dash_budgets"]["annual"] = annual_budget_input
-            db_save_budget("daily", daily_budget_input)
-            db_save_budget("monthly", monthly_budget_input)
-            db_save_budget("annual", annual_budget_input)
-
-            price_adj = st.slider("🏷️ What-If Price Adjustment (%)", min_value=-20, max_value=30, value=0, step=5)
-
-    periods = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    sales_vals = [1200.0, 1450.0, 1320.0, 1680.0, 1950.0, 2400.0, 2100.0]
-    profit_vals = [780.0, 940.0, 850.0, 1100.0, 1280.0, 1560.0, 1370.0]
-    sku_labels = ["SLR-101", "SLR-102", "SLR-103", "SLR-104", "SLR-105", "SLR-106"]
-    sku_stock = [14, 8, 42, 5, 29, 6]
-    sku_sales = [19, 9, 15, 11, 8, 14]
-    active_inventory_csv = SAMPLE_SELLER_CSV
-    if uploaded_metrics is None:
-        st.markdown('<div class="premium-note">✦ Demo mode · Charts, KPIs and inventory currently use sample figures. Upload a CSV to analyze your own data.</div>', unsafe_allow_html=True)
-
-    if uploaded_metrics is not None:
-        try:
-            raw_csv = uploaded_metrics.getvalue().decode("utf-8", errors="replace")
-            rows = list(csv.DictReader(io.StringIO(raw_csv)))
-            if rows:
-                headers_lower = {k.strip().lower(): k for k in rows[0].keys() if k}
-                if "sales" in headers_lower and "profit" in headers_lower:
-                    s_key = headers_lower["sales"]
-                    p_key = headers_lower["profit"]
-                    d_key = headers_lower.get("day") or headers_lower.get("date") or headers_lower.get("period")
-                    periods = [str(r.get(d_key, f"P{i+1}")) for i, r in enumerate(rows)]
-                    sales_vals = [float(r.get(s_key, 0) or 0) * (1 + price_adj/100.0) for r in rows]
-                    profit_vals = [float(r.get(p_key, 0) or 0) * (1 + price_adj/100.0) for r in rows]
-                    st.success(f"Synced {len(rows)} rows globally across dashboard & AI rooms!")
-                elif "retail_price_usd" in headers_lower and "weekly_units_sold" in headers_lower:
-                    active_inventory_csv = raw_csv
-                    for mode_name in workspaces:
-                        workspaces[mode_name]["file_text"] = raw_csv
-                    sku_labels, sku_stock, sku_sales = [], [], []
-                    periods, sales_vals, profit_vals = [], [], []
-                    for i, r in enumerate(rows):
-                        sku = r.get(headers_lower.get("sku", ""), f"SKU-{i+1}")
-                        cost = float(r.get(headers_lower.get("unit_cost_usd", ""), 5) or 5)
-                        price = float(r.get(headers_lower.get("retail_price_usd", ""), 20) or 20) * (1 + price_adj/100.0)
-                        stock = float(r.get(headers_lower.get("stock_on_hand", ""), 10) or 10)
-                        wk_sold = float(r.get(headers_lower.get("weekly_units_sold", ""), 7) or 7)
-                        rev_item = price * wk_sold
-                        prof_item = (price - cost - (price * active_fee_rate)) * wk_sold
-                        sku_labels.append(sku)
-                        sku_stock.append(int(stock))
-                        sku_sales.append(int(wk_sold))
-                        periods.append(sku)
-                        sales_vals.append(round(rev_item, 2))
-                        profit_vals.append(round(prof_item, 2))
-                    st.success(f"Global sync active! Processed {len(rows)} SKUs.")
-        except Exception as e:
-            st.error(f"Error parsing uploaded CSV: {e}")
-
-    sales_fx = [round(v * fx_rate, 2) for v in sales_vals]
-    profit_fx = [round(v * fx_rate, 2) for v in profit_vals]
-    daily_budget_fx = st.session_state["dash_budgets"]["daily"] * fx_rate
-    monthly_budget_fx = st.session_state["dash_budgets"]["monthly"] * fx_rate
-    annual_budget_fx = st.session_state["dash_budgets"]["annual"] * fx_rate
-
-    total_sales_period = sum(sales_fx)
-    total_profit_period = sum(profit_fx)
-    n_periods = max(1, len(profit_fx))
-    daily_profit = total_profit_period / n_periods
-    monthly_profit = daily_profit * 30.0
-    annual_profit = daily_profit * 365.0
-    daily_sales = total_sales_period / n_periods
-    monthly_sales = daily_sales * 30.0
-    annual_sales = daily_sales * 365.0
-    margin_pct = round((total_profit_period / max(1.0, total_sales_period)) * 100, 1)
-
-    k1, k2, k3, k4 = st.columns(4)
-    with k1:
-        st.markdown(
-            f'<div class="kawaii-card"><h4>📅 DAILY PROFIT & BUDGET</h4>'
-            f'<div class="big-num" style="color:#ff4081;">{fx_sym}{daily_profit:,.2f}</div>'
-            f'<small>Sales: {fx_sym}{daily_sales:,.2f} · Budget: {fx_sym}{daily_budget_fx:,.0f}/day</small></div>',
-            unsafe_allow_html=True,
-        )
-    with k2:
-        st.markdown(
-            f'<div class="kawaii-card"><h4>🗓️ MONTHLY PROFIT & BUDGET</h4>'
-            f'<div class="big-num" style="color:#00bcd4;">{fx_sym}{monthly_profit:,.2f}</div>'
-            f'<small>Sales: {fx_sym}{monthly_sales:,.0f} · Budget: {fx_sym}{monthly_budget_fx:,.0f}/mo</small></div>',
-            unsafe_allow_html=True,
-        )
-    with k3:
-        st.markdown(
-            f'<div class="kawaii-card"><h4>📆 ANNUAL PROFIT & BUDGET</h4>'
-            f'<div class="big-num" style="color:#00e676;">{fx_sym}{annual_profit:,.2f}</div>'
-            f'<small>Sales: {fx_sym}{annual_sales:,.0f} · Budget: {fx_sym}{annual_budget_fx:,.0f}/yr</small></div>',
-            unsafe_allow_html=True,
-        )
-    with k4:
-        st.markdown(
-            f'<div class="kawaii-card"><h4>💰 PERIOD GROSS SALES</h4>'
-            f'<div class="big-num" style="color:#7c4dff;">{fx_sym}{total_sales_period:,.2f}</div>'
-            f'<small>Net Profit: {fx_sym}{total_profit_period:,.2f} ({margin_pct}% margin)</small></div>',
-            unsafe_allow_html=True,
-        )
-
-    st.markdown('<div class="premium-section"><span class="premium-eyebrow">Your shop, in numbers</span><h2>Visual performance</h2></div>', unsafe_allow_html=True)
-    render_dashboard_charts(
-        periods,
-        sales_fx,
-        profit_fx,
-        daily_budget_fx,
-        sku_labels,
-        sku_stock,
-        sku_sales,
-        fx_sym,
-    )
-
-    dash_left, dash_right = st.columns([1.25, 1.0], gap="medium")
-
-    with dash_left:
-        st.markdown('<div class="kawaii-panel">', unsafe_allow_html=True)
-        st.markdown("#### 🎯 Daily, Monthly & Annual Budget Tracker")
-        d_ratio = min(1.0, daily_sales / max(1.0, daily_budget_fx))
-        m_ratio = min(1.0, monthly_sales / max(1.0, monthly_budget_fx))
-        a_ratio = min(1.0, annual_sales / max(1.0, annual_budget_fx))
-        st.progress(d_ratio, text=f"Daily Sales ({fx_sym}{daily_sales:,.0f} / {fx_sym}{daily_budget_fx:,.0f}) — {int(d_ratio*100)}%")
-        st.progress(m_ratio, text=f"Monthly Projected ({fx_sym}{monthly_sales:,.0f} / {fx_sym}{monthly_budget_fx:,.0f}) — {int(m_ratio*100)}%")
-        st.progress(a_ratio, text=f"Annual Projected ({fx_sym}{annual_sales:,.0f} / {fx_sym}{annual_budget_fx:,.0f}) — {int(a_ratio*100)}%")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        st.markdown('<div class="kawaii-panel">', unsafe_allow_html=True)
-        st.markdown("#### 📥 1-Click Downloadable Business Exports")
-        ex1, ex2, ex3 = st.columns(3)
-        with ex1:
-            po_text = generate_supplier_po(workspaces["Level 3: Ops & PO Room"])
-            st.download_button("⬇️ Download PO", data=po_text, file_name="supplier_purchase_order.txt", mime="text/plain", use_container_width=True)
-        with ex2:
-            tax_text = generate_schedule_c_pl(active_inventory_csv, active_fee_rate)
-            st.download_button("⬇️ Schedule C P&L", data=tax_text, file_name="schedule_c_summary.txt", mime="text/plain", use_container_width=True)
-        with ex3:
-            list_csv = generate_shopify_etsy_listing_csv("Artisan Ceramic Mug", f"{28.00*(1+price_adj/100.0):.2f}", "Kitchen & Dining")
-            st.download_button("⬇️ Listing CSV", data=list_csv, file_name="bulk_listings.csv", mime="text/csv", use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        st.markdown('<div class="kawaii-panel">', unsafe_allow_html=True)
-        st.markdown("#### 🔍 Live SerpApi Competitor Price Intelligence")
-        sc1, sc2 = st.columns([2.2, 1.0])
-        with sc1:
-            comp_query = st.text_input("Product or SKU to benchmark:", "Hand-Poured Lavender Soy Candle", label_visibility="collapsed")
-        with sc2:
-            run_serp = st.button("Check Market", type="primary", use_container_width=True)
-        if run_serp:
-            st.markdown(fetch_serpapi_competitor_pricing(comp_query))
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with dash_right:
-        st.markdown('<div class="kawaii-panel">', unsafe_allow_html=True)
-        st.markdown("#### ✅ Persistent Seller To-Do List (+50 XP per Task)")
-        todos = db_load_todos()
-        done_count = 0
-        for item in todos:
-            checked = st.checkbox(item["task"], value=item["done"], key=f"todo_db_{item['id']}")
-            if checked != item["done"]:
-                db_save_todo_status(item["id"], checked)
-                if checked:
-                    add_xp(50)
-                st.rerun()
-            if checked:
-                done_count += 1
-        st.progress(done_count / max(1, len(todos)), text=f"Task Completion: {done_count} / {len(todos)} Done")
-
-        new_task_col1, new_task_col2 = st.columns([2.2, 1.0])
-        with new_task_col1:
-            new_task_txt = st.text_input("Add task", placeholder="Add a new seller task...", label_visibility="collapsed")
-        with new_task_col2:
-            if st.button("➕ Add", use_container_width=True) and new_task_txt.strip():
-                db_add_todo(new_task_txt.strip())
-                add_xp(25)
-                st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        with st.expander("📦 Inventory Estimate & Illustrative Financial Summary", expanded=True):
-            st.markdown(run_tabpfn_inventory_forecast(active_inventory_csv, active_fee_rate))
-
+if nav_mode != "🤖 AI Team":
+    # Dedicated business pages reuse the existing live app tools and workspaces.
+    render_page(nav_mode, {
+        "workspaces": workspaces,
+        "SAMPLE_DASHBOARD_CSV": SAMPLE_DASHBOARD_CSV,
+        "SAMPLE_SELLER_CSV": SAMPLE_SELLER_CSV,
+        "active_fee_rate": active_fee_rate,
+        "fx_rate": fx_rate,
+        "fx_sym": fx_sym,
+        "add_xp": add_xp,
+        "db_load_todos": db_load_todos,
+        "db_add_todo": db_add_todo,
+        "db_save_todo_status": db_save_todo_status,
+        "db_save_budget": db_save_budget,
+        "run_tabpfn_inventory_forecast": run_tabpfn_inventory_forecast,
+        "generate_supplier_po": generate_supplier_po,
+        "generate_shopify_etsy_listing_csv": generate_shopify_etsy_listing_csv,
+        "fetch_serpapi_competitor_pricing": fetch_serpapi_competitor_pricing,
+        "generate_schedule_c_pl": generate_schedule_c_pl,
+        "render_dashboard_charts": render_dashboard_charts,
+    })
 else:
     st.markdown(
         f"""
@@ -1564,36 +1289,41 @@ else:
     col_left, col_center, col_right = st.columns([1.0, 1.32, 1.08], gap="medium")
 
     with col_left:
-        st.markdown("#### 📦 Globally Synced Seller Data")
-        if st.button("📦 Analyze Synced Inventory", use_container_width=True, type="primary"):
-            data["tabpfn_report"] = run_tabpfn_inventory_forecast(data["file_text"], active_fee_rate)
-            data["schedule_c_pl"] = generate_schedule_c_pl(data["file_text"], active_fee_rate)
-            process_message(mode, data, "Review globally synced shop inventory and highlight top restock actions.", ref=True)
-            st.rerun()
-
-        act1, act2 = st.columns(2)
-        with act1:
-            if st.button("📋 Generate PO", use_container_width=True):
-                data["generated_po"] = generate_supplier_po(data)
+        st.markdown("#### Your specialist's tools")
+        if mode == "Level 1: Inventory Lab":
+            if st.button("📦 Analyze synced inventory", use_container_width=True, key="sa_ai_morgan_stock"):
+                source = data.get("file_text") or st.session_state.get("sa_shared_csv") or SAMPLE_SELLER_CSV
+                data["tabpfn_report"] = run_tabpfn_inventory_forecast(source, active_fee_rate)
                 st.rerun()
-        with act2:
-            if st.button("🏷️ Export CSV", use_container_width=True):
+            st.caption("Morgan focuses on inventory and restock estimates.")
+        elif mode == "Level 2: Listing Studio":
+            if st.button("🏷️ Create example listing", use_container_width=True, key="sa_ai_jordan_listing"):
                 data["exported_listing_csv"] = generate_shopify_etsy_listing_csv("Artisan Ceramic Mug", f"{28.00*(1+active_fee_rate):.2f}", "Kitchen")
                 st.rerun()
-
+            st.caption("Jordan focuses on listings, product copy and marketing.")
+        elif mode == "Level 3: Ops & PO Room":
+            if st.button("📋 Generate purchase order", use_container_width=True, key="sa_ai_taylor_po"):
+                data["generated_po"] = generate_supplier_po(data)
+                st.rerun()
+            st.caption("Taylor focuses on operations, supplier orders and scheduling.")
+        elif mode == "Level 4: Finance & Tax Desk":
+            if st.button("💰 Create illustrative P&L", use_container_width=True, key="sa_ai_alex_finance"):
+                source = st.session_state.get("sa_shared_csv") if st.session_state.get("sa_shared_kind") == "inventory" else SAMPLE_SELLER_CSV
+                data["schedule_c_pl"] = generate_schedule_c_pl(source, active_fee_rate)
+                st.rerun()
+            st.caption("Alex focuses on margins, budgets and financial summaries. Review tax estimates independently.")
         if data.get("tabpfn_report"):
-            with st.expander("📦 Inventory & Reorder Estimate", expanded=True):
+            with st.expander("📦 Rule-based inventory estimate", expanded=(mode == "Level 1: Inventory Lab")):
                 st.markdown(data["tabpfn_report"])
         if data.get("schedule_c_pl"):
-            with st.expander("📊 Schedule C P&L & Nexus"):
+            with st.expander("📊 Illustrative P&L"):
                 st.markdown(data["schedule_c_pl"])
         if data.get("generated_po"):
-            with st.expander("📦 Purchase Order", expanded=True):
+            with st.expander("📦 Purchase order", expanded=(mode == "Level 3: Ops & PO Room")):
                 st.markdown(data["generated_po"])
         if data.get("exported_listing_csv"):
-            with st.expander("🏷️ Listing CSV", expanded=True):
+            with st.expander("🏷️ Listing CSV", expanded=(mode == "Level 2: Listing Studio")):
                 st.code(data["exported_listing_csv"], language="csv")
-
     with col_center:
         st.markdown(f"<div class='premium-avatar-title'>Meet {info['name']} · {info['level']}</div>", unsafe_allow_html=True)
         render_avatar(info, data)
