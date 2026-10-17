@@ -1252,11 +1252,17 @@ if nav_mode == "📊 Executive Dashboard":
     )
 
     # Operable Interactive Kawaii Character & Building Cards Matching Your Exact Reference
-    from illustrated_buttons import inject_illustrated_button_styles  # ILLUSTRATED SELLER HEADQUARTERS v18
+    from illustrated_buttons import (
+        inject_illustrated_button_styles,
+        render_illustrated_town_hero,
+        render_town_bonus_panel,
+    )  # SELLER ASSIST TOWN v19
     inject_illustrated_button_styles()
-    st.markdown("""<div class="sa-village-intro"><div class="eyebrow">✿ Your little business village</div>
-    <h2>Pick a helper for your shop</h2><p>Tap a picture to run a real Seller Assist shortcut. Each one keeps its original working action.</p>
+    render_illustrated_town_hero()
+    st.markdown("""<div class="sa-village-intro"><div class="eyebrow">✿ Seller town shortcuts</div>
+    <h2>Pick a helper building for the next part of your workflow</h2><p>The first four tools keep their original working actions. The new extras open sample resources and themed helper panels you can build on next.</p>
     </div>""", unsafe_allow_html=True)
+    st.session_state.setdefault("sa_bonus_panel", "")
     kc1, kc2 = st.columns(2, gap="medium")
     kc3, kc4 = st.columns(2, gap="medium")
     with kc1:
@@ -1282,6 +1288,34 @@ if nav_mode == "📊 Executive Dashboard":
             add_xp(50)
             st.success(fetch_serpapi_competitor_pricing("Hand-Poured Lavender Soy Candle"))
         st.markdown("<div class=\"sa-village-caption\">🐝 Comparable-product research</div>", unsafe_allow_html=True)
+    ka1, ka2 = st.columns(2, gap="medium")
+    kb1, kb2 = st.columns(2, gap="medium")
+    kc5, kc6 = st.columns(2, gap="medium")
+    with ka1:
+        if st.button('Finance Desk — open finance helper', key='sa_image_finance', help='Open a sample pricing and margin helper.', use_container_width=True, type="primary"):
+            st.session_state["sa_bonus_panel"] = 'finance'
+        st.markdown("<div class=\"sa-village-caption\">💰 Pricing and margin helper</div>", unsafe_allow_html=True)
+    with ka2:
+        if st.button('Supplier Hub — open sourcing helper', key='sa_image_supplier', help='Open a sample supplier shortlist and sourcing notes.', use_container_width=True, type="primary"):
+            st.session_state["sa_bonus_panel"] = 'supplier'
+        st.markdown("<div class=\"sa-village-caption\">📦 Supplier shortlist and sourcing notes</div>", unsafe_allow_html=True)
+    with kb1:
+        if st.button('Customer Messages — open reply starter pack', key='sa_image_messages', help='Open reusable customer support reply starters.', use_container_width=True, type="primary"):
+            st.session_state["sa_bonus_panel"] = 'messages'
+        st.markdown("<div class=\"sa-village-caption\">💌 Customer reply starter pack</div>", unsafe_allow_html=True)
+    with kb2:
+        if st.button('Promo Studio — open promo idea pack', key='sa_image_promo', help='Open reusable promo copy ideas.', use_container_width=True, type="primary"):
+            st.session_state["sa_bonus_panel"] = 'promo'
+        st.markdown("<div class=\"sa-village-caption\">📣 Promo idea pack</div>", unsafe_allow_html=True)
+    with kc5:
+        if st.button('Shop Settings — open future controls panel', key='sa_image_settings', help='Open a planning panel for future store settings.', use_container_width=True, type="primary"):
+            st.session_state["sa_bonus_panel"] = 'settings'
+        st.markdown("<div class=\"sa-village-caption\">⚙️ Future store settings panel</div>", unsafe_allow_html=True)
+    with kc6:
+        if st.button('AI Team — open role map', key='sa_image_team', help='Open a quick map of the four assistants.', use_container_width=True, type="primary"):
+            st.session_state["sa_bonus_panel"] = 'team'
+        st.markdown("<div class=\"sa-village-caption\">🤖 Assistant role guide</div>", unsafe_allow_html=True)
+    render_town_bonus_panel(st.session_state.get("sa_bonus_panel", ""))
     st.markdown("<div class=\"premium-section\"><span class=\"premium-eyebrow\">Bring your own numbers</span><h2>Shop data &amp; planning</h2><p>Upload your CSV to make your dashboard and specialist tools more relevant.</p></div>", unsafe_allow_html=True)
 
     up_col1, up_col2 = st.columns([1.35, 1.0], gap="medium")
