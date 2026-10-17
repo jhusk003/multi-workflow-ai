@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Seller Assist Town — Explore Mode</title>
+<style>
+:root{color-scheme:light;--ink:#2f2b55;--line:#3d3174;--light:#fff8ec;--pink:#ffcfdf;--lav:#e8dafa}
+*{box-sizing:border-box}html,body{margin:0;overflow-x:hidden;background:transparent;font-family:system-ui,'Trebuchet MS',sans-serif;color:var(--ink)}
+#shell{width:100%;border:2px solid #6650a2;border-radius:22px;overflow:hidden;background:#7660ac;box-shadow:0 12px 25px rgba(34,20,69,.18)}
+#bar{background:#4c377d;color:white;padding:9px 15px;display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:13px;flex-wrap:wrap}
+#bar b{font-weight:800}#bar .hint{opacity:.9}
+#world{position:relative;width:100%;aspect-ratio:1672/941;background:#9ee6fc url('town.webp') center / 100% 100% no-repeat;overflow:hidden;outline:0;touch-action:none;cursor:crosshair;}
+#world:focus-visible{outline:4px solid #fdf19e;outline-offset:-5px}
+#world:after{position:absolute;content:'';inset:auto 0 0;height:12%;background:linear-gradient(0deg,rgba(47,33,90,.10),transparent);pointer-events:none}
+.door{position:absolute;transform:translate(-50%,-50%);display:grid;place-items:center;min-width:28px;min-height:28px;border:2px solid white;border-radius:50%;background:#6c50ae;color:white;box-shadow:0 0 0 3px rgba(91,53,143,.45),0 4px 9px rgba(15,11,37,.28);font-size:15px;cursor:pointer;transition:transform .12s,background .12s;z-index:5;}
+.door:hover,.door:focus-visible{transform:translate(-50%,-50%) scale(1.2);background:#ee75ae;outline:2px solid #ffe788;}
+.door::after{content:attr(data-name);position:absolute;left:50%;bottom:calc(100% + 5px);transform:translateX(-50%);white-space:nowrap;background:#fff8eb;color:#3d3174;border:1.5px solid #6c50ae;padding:3px 7px;border-radius:99px;font-weight:800;font-size:10px;pointer-events:none;box-shadow:0 2px 7px #24164329;opacity:0;transition:opacity .13s;}
+.door:hover::after,.door:focus-visible::after{opacity:1}
+#character{position:absolute;left:50%;top:63%;width:8.5%;max-width:100px;min-width:35px;aspect-ratio:1/1.4;transform:translate(-50%,-76%);z-index:8;pointer-events:none;filter:drop-shadow(0 4px 3px #26314a63);}
+#sprite{width:100%;height:100%}#character svg{width:100%;height:100%;overflow:visible}#character.walk{animation:bob .22s infinite alternate}@keyframes bob{to{transform:translate(-50%,-81%) rotate(3deg)}}
+#nametag{position:absolute;left:50%;bottom:102%;transform:translateX(-50%);background:#fff;color:#4b376f;border:1.5px solid #61458d;white-space:nowrap;font-size:clamp(9px,1.1vw,13px);font-weight:800;border-radius:99px;padding:2px 7px;}
+#panel{position:absolute;z-index:9;left:50%;bottom:4%;transform:translateX(-50%);width:min(390px,90%);background:#fffaf3;border:2px solid #6d55aa;border-radius:16px;box-shadow:0 10px 25px #30215955;text-align:center;padding:9px 12px;display:none;font-size:13px}
+#panel strong{display:block;font-size:16px;color:#3f2f70;margin:0 0 3px}#panel p{margin:0 0 8px;color:#5c5273}
+#panel .actions{display:flex;gap:7px;justify-content:center}button.action{border:1.5px solid #563e99;background:#6e52ad;color:white;border-radius:10px;padding:8px 13px;font-weight:800;cursor:pointer}button.action.secondary{background:#fff;color:#563e99}
+#controls{background:#5e4794;color:white;display:flex;align-items:center;justify-content:space-between;padding:7px 12px;gap:9px;flex-wrap:wrap;font-size:12px}
+#controls .pad{display:grid;grid-template-columns:repeat(3,36px);grid-template-rows:repeat(2,30px);gap:3px}
+#controls .pad button{background:#eee2ff;color:#41306f;border:1.5px solid #48347b;border-radius:7px;font-weight:900;font-size:17px;cursor:pointer;touch-action:none}
+#controls .pad [data-d="up"]{grid-column:2;grid-row:1}#controls .pad [data-d="left"]{grid-column:1;grid-row:2}#controls .pad [data-d="down"]{grid-column:2;grid-row:2}#controls .pad [data-d="right"]{grid-column:3;grid-row:2}
+#controls .explain{max-width:270px;line-height:1.4}
+#save{background:#f6daeb;color:#49356d;border:1.5px solid #edb6d5;border-radius:9px;padding:8px;font-weight:800;cursor:pointer}
+@media(max-width:620px){#world{aspect-ratio:1.24;background-size:auto 100%;background-position:center}#world .door{min-height:24px;min-width:24px}#world{background-size:100% 100%}#character{width:12%}#bar{font-size:11px}#controls .explain{max-width:165px}}
+@media(prefers-reduced-motion:reduce){#character.walk{animation:none}*,*::before,*::after{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="shell">
+ <div id="bar"><b>🌈 Explore Seller Assist Town</b><span class="hint">WASD / arrow keys • tap a glowing door • Enter to visit</span></div>
+ <div id="world" tabindex="0" role="application" aria-label="Interactive town. Move with arrow keys or WASD. Tab to select a building entrance.">
+  <div id="character" aria-label="Your avatar"><div id="nametag">You</div><div id="sprite"></div></div>
+  <div id="panel" role="status" aria-live="polite"><strong id="panelTitle"></strong><p id="panelText"></p><div class="actions"><button id="enter" class="action">Enter building →</button><button id="close" class="action secondary">Keep exploring</button></div></div>
+ </div>
+ <div id="controls"><span class="explain">✨ Click a location to walk there, or tap a door to approach it. Your position saves when you enter or press Save spot.</span><div class="pad" aria-label="Touch movement"><button data-d="up" aria-label="Walk up">▲</button><button data-d="left" aria-label="Walk left">◀</button><button data-d="down" aria-label="Walk down">▼</button><button data-d="right" aria-label="Walk right">▶</button></div><button id="save">💾 Save spot</button></div>
+</div>
+<script>
+(()=>{
+"use strict";
+const world=document.getElementById('world'), player=document.getElementById('character'), sprite=document.getElementById('sprite'), panel=document.getElementById('panel');
+const names={home:'Seller Assist HQ',inventory:'Inventory Lab',listings:'Listing Studio',operations:'Shipping Center',finance:'Analytics & Finance',data:'Shop Data',team:'AI Team',settings:'Shop Settings'};
+const destinations=[
+ {page:'home',name:names.home,emoji:'🏡',x:50,y:49,desc:'Return to your shop overview'},
+ {page:'inventory',name:names.inventory,emoji:'📦',x:10,y:78,desc:'Visit Morgan’s inventory workspace'},
+ {page:'listings',name:names.listings,emoji:'🎨',x:76,y:39,desc:'Open Jordan’s listing and marketing tools'},
+ {page:'operations',name:names.operations,emoji:'🚚',x:45,y:75,desc:'See orders, suppliers and shop tasks'},
+ {page:'finance',name:names.finance,emoji:'💰',x:92,y:43,desc:'View your budgeting and performance tools'},
+ {page:'data',name:names.data,emoji:'📁',x:17,y:52,desc:'Upload your own shop CSV'},
+ {page:'team',name:names.team,emoji:'🤖',x:50,y:28,desc:'Meet the four talking AI specialists'},
+ {page:'settings',name:names.settings,emoji:'⚙️',x:77,y:61,desc:'Review workspace preferences'}
+];
+let options={kind:'Bunny',outfit:'#ffb5d0',nickname:'You'}, p={x:50,y:63}, keys=new Set(), target=null, pending=null, active=null, init=false, last=0, lastEvent=0;
+const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+const safeColor=c=>/^#[0-9a-fA-F]{6}$/.test(c)?c:'#ffb5d0';
+const safeKind=k=>['Bunny','Frog','Kitty','Bear'].includes(k)?k:'Bunny';
+function emit(v){window.parent.postMessage({isStreamlitMessage:true,type:'streamlit:setComponentValue',value:{...v,id:String(Date.now())+"-"+(++lastEvent)},dataType:'json'},'*');}
+function resize(){window.parent.postMessage({isStreamlitMessage:true,type:'streamlit:setFrameHeight',height:document.documentElement.scrollHeight},'*');}
+const eye='<ellipse cx="35" cy="52" rx="3.6" ry="5" fill="#3d3168"/><ellipse cx="63" cy="52" rx="3.6" ry="5" fill="#3d3168"/>';
+function face(){switch(safeKind(options.kind)){
+ case 'Frog':return '<circle cx="28" cy="36" r="13" fill="#acfa62" stroke="#38306b" stroke-width="3"/><circle cx="70" cy="36" r="13" fill="#acfa62" stroke="#38306b" stroke-width="3"/><circle cx="28" cy="35" r="5" fill="#fff"/><circle cx="70" cy="35" r="5" fill="#fff"/><circle cx="28" cy="35" r="2.5" fill="#3d3168"/><circle cx="70" cy="35" r="2.5" fill="#3d3168"/><ellipse cx="49" cy="59" rx="32" ry="27" fill="#acfa62" stroke="#38306b" stroke-width="3"/>';
+ case 'Kitty':return '<path d="M18 42 17 10 39 28 Q50 25 60 28 L82 10 81 42 Q92 67 75 78 Q49 91 23 78 Q7 66 18 42" fill="#fff4de" stroke="#38306b" stroke-width="3"/>';
+ case 'Bear':return '<circle cx="23" cy="31" r="13" fill="#f0bd7a" stroke="#38306b" stroke-width="3"/><circle cx="76" cy="31" r="13" fill="#f0bd7a" stroke="#38306b" stroke-width="3"/><ellipse cx="49" cy="55" rx="35" ry="31" fill="#f0bd7a" stroke="#38306b" stroke-width="3"/>';
+ default:return '<ellipse cx="29" cy="16" rx="11" ry="29" transform="rotate(-12 29 16)" fill="#fff" stroke="#38306b" stroke-width="3"/><ellipse cx="70" cy="16" rx="11" ry="29" transform="rotate(12 70 16)" fill="#fff" stroke="#38306b" stroke-width="3"/><ellipse cx="29" cy="15" rx="5" ry="18" transform="rotate(-12 29 15)" fill="#ffbdd9"/><ellipse cx="70" cy="15" rx="5" ry="18" transform="rotate(12 70 15)" fill="#ffbdd9"/><ellipse cx="49" cy="55" rx="35" ry="31" fill="#fff" stroke="#38306b" stroke-width="3"/>';
+ }}
+function makeAvatar(){const color=safeColor(options.outfit);const frog=options.kind==='Frog';sprite.innerHTML=`<svg viewBox="0 -16 100 137" aria-hidden="true"><ellipse cx="49" cy="116" rx="25" ry="5" fill="#30245342"/><ellipse cx="35" cy="102" rx="13" ry="9" fill="${frog?'#acfa62':'#fff'}" stroke="#38306b" stroke-width="3"/><ellipse cx="65" cy="102" rx="13" ry="9" fill="${frog?'#acfa62':'#fff'}" stroke="#38306b" stroke-width="3"/><path d="M33 72 Q49 68 66 72 L74 99 Q49 108 25 99Z" fill="${color}" stroke="#38306b" stroke-width="3"/><circle cx="50" cy="85" r="5" fill="#fff0a5"/>${face()}${eye}<circle cx="24" cy="62" r="6" fill="#f9a1c2"/><circle cx="74" cy="62" r="6" fill="#f9a1c2"/><path d="M45 66 Q50 72 55 66" stroke="#3d3168" stroke-width="2.6" fill="none" stroke-linecap="round"/><ellipse cx="22" cy="84" rx="9" ry="6" transform="rotate(-25 22 84)" fill="${frog?'#acfa62':'#fff'}" stroke="#38306b" stroke-width="2"/><ellipse cx="78" cy="84" rx="9" ry="6" transform="rotate(25 78 84)" fill="${frog?'#acfa62':'#fff'}" stroke="#38306b" stroke-width="2"/></svg>`;document.getElementById('nametag').textContent=options.nickname.slice(0,18)||'You';}
+function draw(){player.style.left=p.x+'%';player.style.top=p.y+'%'}
+function dist(a,b){return Math.hypot(a.x-b.x,(a.y-b.y)*1.35)}
+function pick(d){active=d;document.getElementById('panelTitle').textContent=d.emoji+' '+d.name;document.getElementById('panelText').textContent=d.desc+'. Ready to enter?';panel.style.display='block';}
+function nearest(){const d=destinations.find(d=>dist(p,d)<5.2);if(d&&!active)pick(d);else if(!d&&active&&!pending){panel.style.display='none';active=null;}}
+function step(ts){if(!last)last=ts;const dt=Math.min((ts-last)/1000,.05);last=ts;let vx=0,vy=0;if(keys.has('ArrowLeft')||keys.has('a'))vx-=1;if(keys.has('ArrowRight')||keys.has('d'))vx+=1;if(keys.has('ArrowUp')||keys.has('w'))vy-=1;if(keys.has('ArrowDown')||keys.has('s'))vy+=1;
+ if(vx||vy){target=null;pending=null;const len=Math.hypot(vx,vy);p.x=clamp(p.x+vx/len*19*dt,3,97);p.y=clamp(p.y+vy/len*19*dt,7,94);}
+ else if(target){let dx=target.x-p.x,dy=target.y-p.y,dl=Math.hypot(dx,dy);const speed=24*dt;if(dl<=speed){p.x=target.x;p.y=target.y;target=null;if(pending){pick(pending);pending=null;}}
+ else{p.x+=dx/dl*speed;p.y+=dy/dl*speed;}}
+ player.classList.toggle('walk',!!(vx||vy||target));draw();if((vx||vy)&&active){panel.style.display='none';active=null;}if(!vx&&!vy&&!target)nearest();requestAnimationFrame(step);}
+const isMove=k=>['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','w','a','s','d'].includes(k);
+world.addEventListener('keydown',e=>{let k=e.key.toLowerCase();if(k.startsWith('arrow'))k="Arrow"+k.slice(5,6).toUpperCase()+k.slice(6);if(isMove(k)){keys.add(k);e.preventDefault();}});
+world.addEventListener('keyup',e=>{let k=e.key.toLowerCase();if(k.startsWith('arrow'))k="Arrow"+k.slice(5,6).toUpperCase()+k.slice(6);keys.delete(k);});
+window.addEventListener('blur',()=>keys.clear());
+world.addEventListener('click',e=>{if(e.target.closest('button'))return;const r=world.getBoundingClientRect();target={x:clamp((e.clientX-r.left)/r.width*100,3,97),y:clamp((e.clientY-r.top)/r.height*100,7,94)};pending=null;active=null;panel.style.display='none';world.focus();});
+for(const d of destinations){const b=document.createElement('button');b.className='door';b.style.left=d.x+'%';b.style.top=d.y+'%';b.textContent=d.emoji;b.setAttribute('aria-label','Approach '+d.name);b.setAttribute('data-name',d.name);b.title=d.name;b.addEventListener('click',e=>{e.stopPropagation();target={x:d.x,y:d.y};pending=d;active=null;panel.style.display='none';world.focus();});world.insertBefore(b,player);}
+document.getElementById('enter').addEventListener('click',()=>{if(active){emit({event:'enter',page:active.page,pos:{x:+p.x.toFixed(2),y:+p.y.toFixed(2)}});panel.style.display='none';}});
+document.getElementById('close').addEventListener('click',()=>{panel.style.display='none';active=null;world.focus();});
+document.getElementById('save').addEventListener('click',()=>emit({event:'save',pos:{x:+p.x.toFixed(2),y:+p.y.toFixed(2)}}));
+for(const b of document.querySelectorAll('[data-d]')){const map={left:'ArrowLeft',right:'ArrowRight',up:'ArrowUp',down:'ArrowDown'};const k=map[b.dataset.d];b.addEventListener('pointerdown',e=>{e.preventDefault();keys.add(k);b.setPointerCapture(e.pointerId);world.focus();});for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,()=>keys.delete(k));}
+window.addEventListener('message',e=>{if(!e.data||e.data.type!=='streamlit:render')return;const a=e.data.args||{};options.kind=safeKind(a.kind);options.outfit=safeColor(a.outfit);options.nickname=String(a.nickname||'You');if(!init){if(a.position){p={x:clamp(+a.position.x||50,3,97),y:clamp(+a.position.y||63,7,94)}};init=true;}makeAvatar();draw();resize();});
+window.parent.postMessage({isStreamlitMessage:true,type:'streamlit:componentReady',apiVersion:1},'*');
+requestAnimationFrame(step);window.addEventListener('resize',resize);window.addEventListener('load',resize);
+})();
+</script>
+</body>
+</html>

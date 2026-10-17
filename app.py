@@ -1,3 +1,4 @@
+# SELLER ASSIST EXPLORE MODE v21
 """Seller Assist v16.1: Operable Whimsical Kawaii Edition.
 Features: Fully Operable Clickable Kawaii Character & Building Cards, True Transparent PNG Illustrations,
 Global CSV Sync, SQLite Persistence, Marketplace Fee Simulator, 1-Click Exports, and XP Gamification.
@@ -1213,7 +1214,7 @@ with st.sidebar:
     st.markdown("### Explore your workspace")
     nav_mode = st.radio(
         "Select View",
-        ["🏡 Home", "📦 Inventory Lab", "🎨 Listings & Marketing", "🚚 Orders & Suppliers", "💰 Finance Desk", "📁 Shop Data", "🤖 AI Team", "⚙️ Settings"],
+        ["🏡 Home", "🗺️ Explore Town", "📦 Inventory Lab", "🎨 Listings & Marketing", "🚚 Orders & Suppliers", "💰 Finance Desk", "📁 Shop Data", "🤖 AI Team", "⚙️ Settings"],
         index=0,
         key="nav_selector",
         label_visibility="collapsed",

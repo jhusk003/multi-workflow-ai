@@ -20,6 +20,7 @@ from illustrated_buttons import (
 )
 
 HOME = "🏡 Home"
+EXPLORE = "🗺️ Explore Town"  # SELLER ASSIST EXPLORE MODE v21
 INVENTORY = "📦 Inventory Lab"
 LISTINGS = "🎨 Listings & Marketing"
 OPERATIONS = "🚚 Orders & Suppliers"
@@ -27,7 +28,7 @@ FINANCE = "💰 Finance Desk"
 DATA = "📁 Shop Data"
 TEAM = "🤖 AI Team"
 SETTINGS = "⚙️ Settings"
-PAGES = [HOME, INVENTORY, LISTINGS, OPERATIONS, FINANCE, DATA, TEAM, SETTINGS]
+PAGES = [HOME, EXPLORE, INVENTORY, LISTINGS, OPERATIONS, FINANCE, DATA, TEAM, SETTINGS]
 
 MORGAN = "Level 1: Inventory Lab"
 JORDAN = "Level 2: Listing Studio"
@@ -184,6 +185,7 @@ def home(c, data):
     todos=c["db_load_todos"]()
     left=len([t for t in todos if not t["done"]])
     st.caption(f"✅ {left} open shop tasks · ⭐ {st.session_state['seller_xp']} XP · Detailed tools are in the left menu.")
+    if st.button("🗺️ Explore the town with my avatar →", key="sa_home_explore", use_container_width=True): go(EXPLORE)
     if st.button("Meet your talking AI specialists →", key="sa_home_team",use_container_width=True): go(TEAM)
 
 
@@ -364,6 +366,66 @@ def settings(c, data):
     st.write({"AI calls this session":telemetry.get("calls",0),"Last AI latency (ms)":telemetry.get("last_latency_ms",0),"Session errors":telemetry.get("errors",0)})
 
 
+
+def explore_mode():
+    """Free-roam 2D town. Local in-session avatar and building routing."""
+    from town_game import explore_town
+
+    _top("Playful navigation · optional", "Explore Seller Assist Town",
+         "Choose your mini character, wander through town, and step inside a building to open its real workspace.")
+
+    st.session_state.setdefault("sa_avatar_type", "Bunny")
+    st.session_state.setdefault("sa_avatar_outfit", "#FFB5D0")
+    st.session_state.setdefault("sa_avatar_nickname", "Shopkeeper")
+    st.session_state.setdefault("sa_avatar_position", {"x": 50, "y": 63})
+    st.session_state.setdefault("sa_town_last_event", "")
+
+    with st.expander("🎀 Customize my mini avatar", expanded=False):
+        kind_col, color_col, nick_col = st.columns([1, 1, 2])
+        with kind_col:
+            st.selectbox("Character", ["Bunny", "Frog", "Kitty", "Bear"], key="sa_avatar_type")
+        with color_col:
+            st.color_picker("Outfit color", key="sa_avatar_outfit")
+        with nick_col:
+            st.text_input("Character name", key="sa_avatar_nickname", max_chars=18)
+        st.caption("Customization and location are retained during your current Streamlit session; they are not account-wide permanent saves.")
+
+    event = explore_town(
+        kind=st.session_state["sa_avatar_type"],
+        outfit=st.session_state["sa_avatar_outfit"],
+        nickname=st.session_state["sa_avatar_nickname"],
+        position=st.session_state["sa_avatar_position"],
+    )
+    if isinstance(event, dict) and event.get("id") != st.session_state["sa_town_last_event"]:
+        st.session_state["sa_town_last_event"] = event.get("id")
+        pos = event.get("pos", {})
+        if isinstance(pos, dict):
+            try:
+                x = max(3.0, min(97.0, float(pos.get("x", 50))))
+                y = max(7.0, min(94.0, float(pos.get("y", 63))))
+                st.session_state["sa_avatar_position"] = {"x": x, "y": y}
+            except (ValueError, TypeError):
+                pass
+        if event.get("event") == "enter":
+            mapping = {
+                "home": HOME, "inventory": INVENTORY, "listings": LISTINGS,
+                "operations": OPERATIONS, "finance": FINANCE, "data": DATA,
+                "team": TEAM, "settings": SETTINGS,
+            }
+            target = mapping.get(event.get("page"))
+            if target:
+                go(target)
+        elif event.get("event") == "save":
+            st.success("Your avatar's position was saved for this session.")
+
+    st.caption("Movement: click the map, use WASD/arrow keys after focusing the town, or use the touch pad. Select a glowing entrance and choose Enter building.")
+    with st.expander("Direct navigation (accessible fallback)", expanded=False):
+        choices = [HOME, INVENTORY, LISTINGS, OPERATIONS, FINANCE, DATA, TEAM, SETTINGS]
+        target = st.selectbox("Choose a building", choices, key="sa_town_fallback_destination")
+        if st.button("Open selected workspace", key="sa_town_fallback_open", use_container_width=True):
+            go(target)
+
+
 def render_page(page: str, context: dict[str, Any]):
     inject_illustrated_button_styles()
     _styles()
@@ -373,6 +435,7 @@ def render_page(page: str, context: dict[str, Any]):
     st.session_state.setdefault("sa_price_adjust",0)
     data=shop_data(context)
     if page==HOME: home(context,data)
+    elif page==EXPLORE: explore_mode()
     elif page==INVENTORY: inventory(context,data)
     elif page==LISTINGS: listings(context,data)
     elif page==OPERATIONS: operations(context,data)
