@@ -151,12 +151,12 @@ def _model_link(model: str, text: str):
 
 def _styles():
     st.markdown("""<style>
-    .sa-v20-header{background:linear-gradient(110deg,#fff,#fcf5ff 70%,#fff0f8);border:1px solid #eadff5;
-      border-radius:24px;padding:22px 27px;margin:.1rem 0 1rem;box-shadow:0 8px 20px rgba(71,45,118,.04)}
-    .sa-v20-header h1{font:700 clamp(1.7rem,3vw,2.5rem) Fredoka,sans-serif;color:#413568;margin:.25rem 0}
-    .sa-v20-header p{color:#605b74;font-size:.96rem;margin:0}
-    .sa-v20-eyebrow{font:800 .72rem 'Nunito Sans',sans-serif;color:#7052b8;letter-spacing:.12em;text-transform:uppercase}
-    .sa-v20-title{font:700 1.3rem Fredoka,sans-serif;margin:14px 0 6px;color:#3f3665}
+    .sa-v20-header{background:linear-gradient(135deg,#7d6aac,#907ec0 58%,#b18dc7);border:1px solid rgba(255,255,255,.12);
+      border-radius:24px;padding:22px 27px;margin:.1rem 0 1rem;box-shadow:0 12px 24px rgba(32,20,64,.14)}
+    .sa-v20-header h1{font:700 clamp(1.7rem,3vw,2.5rem) Fredoka,sans-serif;color:#fff;margin:.25rem 0}
+    .sa-v20-header p{color:#f5f2ff;font-size:.96rem;margin:0}
+    .sa-v20-eyebrow{font:800 .72rem 'Nunito Sans',sans-serif;color:#fff7d7;letter-spacing:.12em;text-transform:uppercase}
+    .sa-v20-title{font:700 1.3rem Fredoka,sans-serif;margin:14px 0 6px;color:#ffffff}
     .sa-v20-panel{background:#fff;border:1px solid #e9def4;border-radius:17px;padding:14px 16px;margin:12px 0}
     .sa-town-hero{min-height:275px!important;background-position:center 51%!important;margin-top:0!important}
     .sa-town-hero h1{font-size:clamp(1.55rem,3vw,2.4rem)!important}
