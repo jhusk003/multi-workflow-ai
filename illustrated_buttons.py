@@ -1,4 +1,4 @@
-"""Seller Assist v19: expanded illustrated dashboard with a town hero and extra image buttons."""
+"""DUSK_HERO_V20_2 — Seller Assist illustrated dashboard and town hero."""
 import base64
 import csv
 import io
@@ -44,18 +44,18 @@ def _css() -> str:
   background-size:cover; background-position:center; box-shadow:0 18px 36px rgba(44,32,92,.12);
   border:1px solid rgba(113,82,184,.16); margin:.2rem 0 1.1rem;
 }}
-.sa-town-hero:before {{content:''; position:absolute; inset:0; background:linear-gradient(90deg, rgba(255,255,255,.88) 0%, rgba(255,255,255,.72) 34%, rgba(255,255,255,.24) 68%, rgba(255,255,255,.10) 100%);}}
+.sa-town-hero:before {{content:''; position:absolute; inset:0; background:linear-gradient(90deg, rgba(55,39,88,.94) 0%, rgba(66,47,106,.83) 34%, rgba(73,53,111,.48) 68%, rgba(73,53,111,.22) 100%);}}
 .sa-town-overlay {{position:relative; z-index:2; padding:26px 28px; max-width:650px;}}
 .sa-town-chip {{display:inline-block; background:#fff6d6; border:1px solid #f4d774; color:#705200; padding:6px 12px; border-radius:999px; font:800 .72rem 'Nunito Sans', sans-serif; letter-spacing:.08em; text-transform:uppercase;}}
-.sa-town-hero h1 {{font:700 clamp(1.9rem, 4vw, 3.2rem) 'Fredoka', sans-serif; color:#2c3150; margin:.65rem 0 .35rem; line-height:1.02;}}
-.sa-town-hero p {{font:600 .98rem/1.62 'Nunito Sans', sans-serif; color:#4d5971; margin:0; max-width:520px;}}
+.sa-town-hero h1 {{font:700 clamp(1.9rem, 4vw, 3.2rem) 'Fredoka', sans-serif; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.18); margin:.65rem 0 .35rem; line-height:1.02;}}
+.sa-town-hero p {{font:600 .98rem/1.62 'Nunito Sans', sans-serif; color:#f8f5ff; margin:0; max-width:520px;}}
 .sa-town-badges {{display:flex; flex-wrap:wrap; gap:.45rem; margin-top:1rem;}}
 .sa-town-badge {{background:rgba(255,255,255,.86); color:#5f5674; border:1px solid #e5dcf4; padding:7px 11px; border-radius:14px; font:700 .78rem 'Nunito Sans',sans-serif;}}
 .sa-village-intro {{padding:2px 0 15px;}}
-.sa-village-intro .eyebrow {{font:800 .72rem 'Nunito Sans',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#7052b8;}}
-.sa-village-intro h2 {{font:700 clamp(1.45rem,2.8vw,2rem) 'Fredoka',sans-serif;color:#293047;margin:.25rem 0 .1rem;}}
-.sa-village-intro p {{color:#635c74;font-size:.94rem;margin:0;}}
-.sa-village-caption {{font:700 .82rem/1.45 'Nunito Sans',sans-serif;color:#655b74;text-align:center;margin:-8px 0 13px;}}
+.sa-village-intro .eyebrow {{font:800 .72rem 'Nunito Sans',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#fff1b8;}}
+.sa-village-intro h2 {{font:700 clamp(1.45rem,2.8vw,2rem) 'Fredoka',sans-serif;color:#fff;margin:.25rem 0 .1rem;}}
+.sa-village-intro p {{color:#f3efff;font-size:.94rem;margin:0;}}
+.sa-village-caption {{font:700 .82rem/1.45 'Nunito Sans',sans-serif;color:#f7f2ff;text-align:center;margin:-8px 0 13px;}}
 .stApp [class*="st-key-sa_image_"] button[kind="primary"] {{
   display:block!important;width:100%!important;min-width:0!important;
   height:auto!important;min-height:0!important;aspect-ratio:7 / 4!important;
@@ -73,7 +73,7 @@ def _css() -> str:
 .stApp [class*="st-key-sa_image_"] button:active {{transform:translateY(0) scale(.99)!important;}}
 .stApp [class*="st-key-sa_image_"] button:focus-visible {{outline:4px solid #7052b8!important;outline-offset:4px!important;}}
 @media (max-width: 900px) {{ .sa-town-hero {{min-height:300px;}} .sa-town-overlay {{padding:20px;}} }}
-@media (max-width: 720px) {{ .stApp [class*="st-key-sa_image_"] button[kind="primary"] {{border-radius:14px!important;}} .sa-town-hero:before {{background:linear-gradient(180deg, rgba(255,255,255,.90) 0%, rgba(255,255,255,.78) 48%, rgba(255,255,255,.35) 100%);}} }}
+@media (max-width: 720px) {{ .stApp [class*="st-key-sa_image_"] button[kind="primary"] {{border-radius:14px!important;}} .sa-town-hero:before {{background:linear-gradient(180deg, rgba(55,39,88,.94) 0%, rgba(66,47,106,.82) 50%, rgba(73,53,111,.38) 100%);}} }}
 @media (prefers-reduced-motion: reduce) {{ .stApp [class*="st-key-sa_image_"] button[kind="primary"] {{transition:none!important;}} }}
 """
     ]
@@ -136,7 +136,7 @@ def render_illustrated_town_hero():
         """
     <div class="sa-town-hero">
       <div class="sa-town-overlay">
-        <div class="sa-town-chip">Seller Assist Town · v19</div>
+        <div class="sa-town-chip">Seller Assist Town · Dusk v20.2</div>
         <h1>Your whole shop as a tiny kawaii city</h1>
         <p>Use the original working shortcut buttons plus a new set of playful shop helpers. The town graphic can also double as a hero banner or dashboard background.</p>
         <div class="sa-town-badges">

@@ -1,4 +1,4 @@
-"""Seller Assist premium-pastel design layer. Loaded after the legacy v16 stylesheet.
+"""DUSK_THEME_V20_2 — Seller Assist premium-pastel design layer. Loaded after the legacy v16 stylesheet.
 
 Purely a presentation layer; no business records, AI settings, or API keys here.
 """
@@ -7,7 +7,7 @@ import streamlit as st
 CSS = r"""
 @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito+Sans:wght@400;500;600;700;800&family=Quicksand:wght@600;700&display=swap');
 :root {
-  --sa-lavender:#f7f2ff; --sa-purple:#7052b8; --sa-pink:#ff75ad;
+  --sa-lavender:#7460a7; --sa-purple:#7052b8; --sa-pink:#ff75ad;
   --sa-mint:#bdece1; --sa-honey:#ffe4aa; --sa-ink:#293047;
   --sa-muted:#5c6177; --sa-line:#e8dff4; --sa-white:#fff;
   --sa-shadow:0 12px 28px rgba(71,45,118,.075);
@@ -15,34 +15,37 @@ CSS = r"""
 html { scroll-behavior: smooth; }
 .stApp, [data-testid="stAppViewContainer"] {
   color:var(--sa-ink)!important; font-family:'Nunito Sans',sans-serif!important;
-  background:radial-gradient(ellipse at 88% 0%,#fff1f7 0,transparent 37%),
-    radial-gradient(ellipse at 4% 42%,#eaf8f2 0,transparent 31%),
-    var(--sa-lavender)!important;
-  background-image:radial-gradient(ellipse at 88% 0%,#fff1f7 0,transparent 37%),radial-gradient(ellipse at 4% 42%,#eaf8f2 0,transparent 31%)!important;
+  background:
+    radial-gradient(circle at 14% 12%, rgba(255,255,255,.12) 0, transparent 18%),
+    radial-gradient(circle at 88% 10%, rgba(255,194,220,.16) 0, transparent 21%),
+    radial-gradient(circle at 7% 72%, rgba(189,236,225,.13) 0, transparent 18%),
+    linear-gradient(180deg, #7460a7 0%, #69568f 100%)!important;
+  background-attachment:fixed!important;
 }
 .block-container {max-width:1500px!important; padding:1.9rem 2.1rem 3.5rem!important;}
-[data-testid="stSidebar"] {background:#fffafd!important; border-right:1px solid var(--sa-line)!important;}
+[data-testid="stSidebar"] {background:linear-gradient(180deg,#5f4d94 0%,#69568f 100%)!important; border-right:1px solid rgba(255,255,255,.12)!important;}
 [data-testid="stSidebar"] [data-testid="stSidebarContent"] {padding-top:1.45rem;}
+[data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span, [data-testid="stSidebar"] div {color:#fff!important;}
 [data-testid="stSidebar"] .stRadio > div[role="radiogroup"] {gap:.42rem;}
-[data-testid="stSidebar"] .stRadio label:has(input:checked) {background:#ede6fa!important;border-radius:12px;}
+[data-testid="stSidebar"] .stRadio label:has(input:checked) {background:rgba(255,255,255,.18)!important;border-radius:12px;}
 [data-testid="stSidebar"] .stRadio label {padding:.42rem .55rem;border-radius:12px;transition:background .18s ease;}
-[data-testid="stSidebar"] .stRadio label:hover {background:#f6f0ff;}
+[data-testid="stSidebar"] .stRadio label:hover {background:rgba(255,255,255,.10)!important;}
 .stApp p, .stApp li, .stApp label, .stApp small {font-family:'Nunito Sans',sans-serif;}
 .stApp h1,.stApp h2,.stApp h3,.stApp h4 {font-family:'Fredoka',sans-serif;letter-spacing:-.018em;color:var(--sa-ink);}
 .stApp h2 {font-size:clamp(1.45rem,2.1vw,1.8rem);} .stApp h3{font-size:1.24rem;}
 .stApp p {line-height:1.58;} .stCaptionContainer p,[data-testid="stCaptionContainer"] p {color:var(--sa-muted)!important;font-size:.83rem!important;}
 hr {border-color:var(--sa-line)!important;}
-.kawaii-header {background:linear-gradient(117deg,#fff 0%,#faf5ff 54%,#ffeef6 100%)!important;
-  border:1px solid #e9dcf3!important;border-radius:28px!important;
+.kawaii-header {background:linear-gradient(130deg,#5f4d94 0%,#69568f 58%,#7460a7 100%)!important;
+  border:1px solid rgba(255,255,255,.12)!important;border-radius:28px!important;
   box-shadow:var(--sa-shadow)!important;padding:clamp(22px,3vw,38px)!important;
   margin-bottom:24px!important;position:relative;overflow:hidden;}
 .kawaii-header:after {content:'✿';position:absolute;right:16%;top:-38px;font-size:165px;color:rgba(255,117,173,.085);pointer-events:none;line-height:1;}
 .kawaii-header h1 {font-size:clamp(1.75rem,3vw,2.65rem)!important;line-height:1.15!important;
- color:#443268!important;font-family:'Fredoka',sans-serif!important;max-width:750px;}
-.kawaii-header h1 span{display:block!important;margin-top:11px;color:var(--sa-purple)!important;
+ color:#fff!important;font-family:'Fredoka',sans-serif!important;max-width:750px;text-shadow:0 1px 1px rgba(0,0,0,.08);}
+.kawaii-header h1 span{display:block!important;margin-top:11px;color:#fdf2ff!important;
   font:800 .78rem 'Nunito Sans',sans-serif!important;letter-spacing:.105em;line-height:1.5;}
-.kawaii-header p {font-size:1rem!important;max-width:680px;line-height:1.7!important;color:#5c5772!important;}
-.kawaii-badge {background:#fce7f0!important;color:#75436c!important;border:1px solid #f5cede!important;
+.kawaii-header p {font-size:1rem!important;max-width:680px;line-height:1.7!important;color:#f7f4ff!important;}
+.kawaii-badge {background:rgba(255,255,255,.18)!important;color:#fff!important;border:1px solid rgba(255,255,255,.22)!important;
   box-shadow:none!important;font:800 .74rem 'Nunito Sans',sans-serif!important;padding:8px 13px!important;}
 .kawaii-card,.kawaii-panel {background:#fff!important;border:1px solid var(--sa-line)!important;
  border-radius:21px!important;box-shadow:var(--sa-shadow)!important;padding:21px!important;}
@@ -77,6 +80,10 @@ hr {border-color:var(--sa-line)!important;}
  background:linear-gradient(110deg,#6345ad,#8357c0)!important;color:#fff!important;}
 .stButton > button:focus-visible,.stDownloadButton > button:focus-visible,button:focus-visible,
 input:focus-visible,textarea:focus-visible,select:focus-visible {outline:3px solid #e694c1!important;outline-offset:3px!important;}
+
+[data-testid="stMetric"] {background:rgba(255,255,255,.96)!important;border:1px solid #e9def4!important;border-radius:17px!important;padding:12px 14px!important;box-shadow:0 8px 18px rgba(32,20,64,.10)!important;}
+[data-testid="stMetricLabel"] p, [data-testid="stMetricDelta"] {color:#62587a!important;}
+[data-testid="stMetricValue"] {color:#2f3550!important;}
 [data-testid="stTextInput"] input,[data-testid="stNumberInput"] input,
 [data-testid="stTextArea"] textarea,[data-testid="stSelectbox"] [data-baseweb="select"] > div {
  border-radius:12px!important;border-color:#ddd3ea!important;background:#fff!important;
@@ -116,6 +123,21 @@ input:focus-visible,textarea:focus-visible,select:focus-visible {outline:3px sol
 @media (prefers-reduced-motion: reduce) {
  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important;}
 }
+/* DUSK_THEME_V20_2 — contrast on dark canvas; keep bright cards readable. */
+[data-testid="stMain"] .stMarkdown > div > p {color:#faf8ff;}
+[data-testid="stMain"] [data-testid="stCaptionContainer"] p {color:#f6f1ff!important;}
+[data-testid="stMain"] .stMarkdown h1,[data-testid="stMain"] .stMarkdown h2,
+[data-testid="stMain"] .stMarkdown h3,[data-testid="stMain"] .stMarkdown h4 {color:#fff;}
+[data-testid="stMain"] [data-testid="stExpander"] .stMarkdown p,
+[data-testid="stMain"] [data-testid="stExpander"] .stMarkdown h1,
+[data-testid="stMain"] [data-testid="stExpander"] .stMarkdown h2,
+[data-testid="stMain"] [data-testid="stExpander"] .stMarkdown h3,
+[data-testid="stMain"] [data-testid="stExpander"] .stMarkdown h4,
+[data-testid="stMain"] [data-testid="stChatMessage"] .stMarkdown p,
+[data-testid="stMain"] [data-testid="stMetric"] p {color:#293047!important;}
+[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {color:#f3ecff!important;}
+[data-testid="stMain"] [data-testid="stMetricLabel"] p {color:#62587a!important;}
+[data-testid="stMain"] [data-testid="stMetricValue"] {color:#293047!important;}
 """
 
 
