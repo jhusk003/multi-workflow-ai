@@ -20,7 +20,6 @@ from illustrated_buttons import (
 )
 
 HOME = "🏡 Home"
-EXPLORE = "🗺️ Explore Town"  # SELLER ASSIST EXPLORE MODE v21
 INVENTORY = "📦 Inventory Lab"
 LISTINGS = "🎨 Listings & Marketing"
 OPERATIONS = "🚚 Orders & Suppliers"
@@ -28,7 +27,7 @@ FINANCE = "💰 Finance Desk"
 DATA = "📁 Shop Data"
 TEAM = "🤖 AI Team"
 SETTINGS = "⚙️ Settings"
-PAGES = [HOME, EXPLORE, INVENTORY, LISTINGS, OPERATIONS, FINANCE, DATA, TEAM, SETTINGS]
+PAGES = [HOME, INVENTORY, LISTINGS, OPERATIONS, FINANCE, DATA, TEAM, SETTINGS]
 
 MORGAN = "Level 1: Inventory Lab"
 JORDAN = "Level 2: Listing Studio"
@@ -167,8 +166,7 @@ def _styles():
     </style>""", unsafe_allow_html=True)
 
 
-def home(c, data):
-    render_illustrated_town_hero()
+def _home_quick(c, data):
     st.markdown('<div class="sa-v20-title">Your shop at a glance</div>', unsafe_allow_html=True)
     _metrics(data,c,compact=True)
     st.markdown('<div class="sa-v20-title">Where would you like to start?</div>', unsafe_allow_html=True)
@@ -185,7 +183,6 @@ def home(c, data):
     todos=c["db_load_todos"]()
     left=len([t for t in todos if not t["done"]])
     st.caption(f"✅ {left} open shop tasks · ⭐ {st.session_state['seller_xp']} XP · Detailed tools are in the left menu.")
-    if st.button("🗺️ Explore the town with my avatar →", key="sa_home_explore", use_container_width=True): go(EXPLORE)
     if st.button("Meet your talking AI specialists →", key="sa_home_team",use_container_width=True): go(TEAM)
 
 
@@ -371,8 +368,7 @@ def explore_mode():
     """Free-roam 2D town. Local in-session avatar and building routing."""
     from town_game import explore_town
 
-    _top("Playful navigation · optional", "Explore Seller Assist Town",
-         "Choose your mini character, wander through town, and step inside a building to open its real workspace.")
+    st.caption("Wander around the town or tap a glowing entrance to open the matching shop tool.")
 
     st.session_state.setdefault("sa_avatar_type", "Bunny")
     st.session_state.setdefault("sa_avatar_outfit", "#FFB5D0")
@@ -413,6 +409,8 @@ def explore_mode():
                 "team": TEAM, "settings": SETTINGS,
             }
             target = mapping.get(event.get("page"))
+            if event.get("page") == "home":
+                st.session_state["sa_home_view_request"] = "quick"
             if target:
                 go(target)
         elif event.get("event") == "save":
@@ -426,6 +424,25 @@ def explore_mode():
             go(target)
 
 
+def home(c, data):
+    # SELLER ASSIST EXPLORE ON HOME v21.1
+    # The map and compact dashboard are alternative views, not one long page.
+    _top("Your little business village", "Welcome to Seller Assist Town",
+         "Explore the town with your mini avatar or jump straight into your shop tools.")
+    if st.session_state.pop("sa_home_view_request", None) == "quick":
+        st.session_state["sa_home_view_v21_1"] = "📊 Quick Dashboard"
+    choice = st.radio(
+        "Home view",
+        ["🗺️ Explore Town", "📊 Quick Dashboard"],
+        horizontal=True,
+        key="sa_home_view_v21_1",
+        label_visibility="collapsed",
+    )
+    if choice == "🗺️ Explore Town":
+        explore_mode()
+    else:
+        _home_quick(c, data)
+
 def render_page(page: str, context: dict[str, Any]):
     inject_illustrated_button_styles()
     _styles()
@@ -435,7 +452,6 @@ def render_page(page: str, context: dict[str, Any]):
     st.session_state.setdefault("sa_price_adjust",0)
     data=shop_data(context)
     if page==HOME: home(context,data)
-    elif page==EXPLORE: explore_mode()
     elif page==INVENTORY: inventory(context,data)
     elif page==LISTINGS: listings(context,data)
     elif page==OPERATIONS: operations(context,data)

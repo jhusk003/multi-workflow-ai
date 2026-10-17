@@ -1214,7 +1214,7 @@ with st.sidebar:
     st.markdown("### Explore your workspace")
     nav_mode = st.radio(
         "Select View",
-        ["🏡 Home", "🗺️ Explore Town", "📦 Inventory Lab", "🎨 Listings & Marketing", "🚚 Orders & Suppliers", "💰 Finance Desk", "📁 Shop Data", "🤖 AI Team", "⚙️ Settings"],
+        ["🏡 Home", "📦 Inventory Lab", "🎨 Listings & Marketing", "🚚 Orders & Suppliers", "💰 Finance Desk", "📁 Shop Data", "🤖 AI Team", "⚙️ Settings"],
         index=0,
         key="nav_selector",
         label_visibility="collapsed",
