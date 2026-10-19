@@ -888,25 +888,32 @@ AVATAR_HTML = r"""<!DOCTYPE html>
   function resize() { let r = canvas.parentElement.getBoundingClientRect(), d = Math.min(window.devicePixelRatio||1, 2); canvas.width = Math.round(r.width*d); canvas.height = Math.round(r.height*d); gl.viewport(0,0,canvas.width,canvas.height); }
   window.addEventListener('resize', resize); resize();
 
+  // SELLER ASSIST NATURAL AUDIO LIP-SYNC v34
+  // The supplied GLSL lips/eyes and portrait renderer above are UNCHANGED.
+  // Only playback timing and the audio envelope are refined here.
   const wordCount = (C.text || '').trim().split(/\s+/).filter(Boolean).length;
-  const estDurationMs = Math.min(22000, Math.max(4500, wordCount * 350));
+  const estDurationMs = Math.min(18000, Math.max(4200, wordCount * 340));
+  let mouthOpen = 0, blink = 0, nextBlink = performance.now() + 1800;
+  let previewStart = 0, previewUntil = 0, previousFrame = performance.now();
+  let audioCtx = null, analyser = null, waveData = null, sourceConnected = false;
+  let measuredPeak = 0.065, analyserFailed = false;
 
-  let mouthOpen = 0, blink = 0, nextBlink = performance.now() + 1800, isSpeaking = false;
-  let lipSyncUntil = 0;
-
-  let audioCtx = null, analyser = null, freqData = null, sourceConnected = false;
   function ensureAudioAnalyser() {
-    if (sourceConnected || !C.audio) return;
+    if (sourceConnected || analyserFailed || !C.audio) return;
     try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const Audio = window.AudioContext || window.webkitAudioContext;
+      if (!Audio) { analyserFailed = true; return; }
+      audioCtx = new Audio();
       analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 128;
-      freqData = new Uint8Array(analyser.frequencyBinCount);
+      analyser.fftSize = 1024;
+      waveData = new Uint8Array(analyser.fftSize);
       const srcNode = audioCtx.createMediaElementSource(sound);
       srcNode.connect(analyser);
       analyser.connect(audioCtx.destination);
       sourceConnected = true;
-    } catch (e) {}
+    } catch (e) {
+      analyserFailed = true;
+    }
   }
 
   if (C.audio) {
@@ -916,40 +923,62 @@ AVATAR_HTML = r"""<!DOCTYPE html>
     sound.style.display = 'none';
   }
 
-  function getSyllableEnvelope(now) {
-    const phraseGate = Math.sin(now * 0.0045) > -0.68 ? 1.0 : 0.10;
-    const sylA = Math.max(0.0, Math.sin(now * 0.027));
-    const sylB = Math.max(0.0, Math.sin(now * 0.016 + 1.2));
-    const bilabialDip = 0.72 + 0.28 * Math.cos(now * 0.063);
-    return Math.min(0.92, (0.16 + 0.50 * sylA + 0.30 * sylB) * bilabialDip * phraseGate);
+  // Used ONLY when Preview lips is selected (or when browser audio analysis is
+  // unsupported). This is never mixed into successfully analysed voice audio.
+  function previewEnvelope(t) {
+    const local = (t % 1750);
+    if (local > 1190 && local < 1460) return 0;
+    const phrase = Math.min(1, t / 100, (1750 - local) / 140);
+    const a = Math.max(0, Math.sin(t * 0.020 + 0.35));
+    const b = Math.max(0, Math.sin(t * 0.031 + 1.30));
+    return Math.max(0, phrase) * Math.min(0.85, 0.12 + a * 0.46 + b * 0.23);
+  }
+
+  function measuredVoiceOpening(dt) {
+    if (!sourceConnected || !analyser || !waveData || !audioCtx || audioCtx.state !== 'running') return null;
+    analyser.getByteTimeDomainData(waveData);
+    let squared = 0;
+    for (let i = 0; i < waveData.length; i++) {
+      const sample = (waveData[i] - 128) / 128;
+      squared += sample * sample;
+    }
+    const rms = Math.sqrt(squared / waveData.length);
+    // Slowly adapt to each voice's volume; silence must still close the mouth.
+    measuredPeak = Math.max(0.065, measuredPeak * Math.exp(-dt / 1600), rms);
+    const noiseGate = 0.012;
+    if (rms <= noiseGate) return 0;
+    const ceiling = Math.max(0.048, measuredPeak * 0.74);
+    const normalized = Math.min(1, (rms - noiseGate) / (ceiling - noiseGate));
+    return Math.min(0.92, Math.pow(normalized, 0.77) * 0.88);
   }
 
   function render(now) {
     requestAnimationFrame(render);
     if (!mediaReady) return;
+    const dt = Math.min(80, Math.max(1, now - previousFrame));
+    previousFrame = now;
+    // ORIGINAL BLINK CODE: untouched.
     if (now >= nextBlink) {
       let el = now - nextBlink;
       if (el < 150) blink = Math.sin((el / 150) * Math.PI);
       else { blink = 0; nextBlink = now + 2400 + Math.random() * 2200; }
     }
 
-    const activeSpeech = isSpeaking || (!sound.paused && !sound.ended && sound.currentTime > 0) || (now < lipSyncUntil);
+    const playing = Boolean(C.audio) && !sound.paused && !sound.ended && sound.readyState >= 2;
+    const previewing = !playing && now < previewUntil;
     let targetOpen = 0;
-    if (activeSpeech) {
-      let cad = getSyllableEnvelope(now);
-      if (analyser && freqData && !sound.paused) {
-        analyser.getByteFrequencyData(freqData);
-        let sum = 0;
-        for (let i = 1; i < 20; i++) sum += freqData[i];
-        let env = Math.min(0.95, (sum / (19 * 255)) * 2.4);
-        targetOpen = env > 0.04 ? (0.45 * env + 0.55 * cad) : cad;
-      } else {
-        targetOpen = cad;
-      }
+    if (playing) {
+      const energy = measuredVoiceOpening(dt);
+      targetOpen = energy === null ? previewEnvelope(sound.currentTime * 1000) : energy;
+    } else if (previewing) {
+      targetOpen = previewEnvelope(now - previewStart);
     }
-    mouthOpen += (targetOpen - mouthOpen) * 0.34;
+    // Frame-rate-independent smoothing: responsive consonants, softer releases.
+    const responseMs = targetOpen > mouthOpen ? 43 : 88;
+    mouthOpen += (targetOpen - mouthOpen) * (1 - Math.exp(-dt / responseMs));
+    if (!playing && !previewing && mouthOpen < 0.008) mouthOpen = 0;
 
-    const swayAmp = activeSpeech ? 0.0065 : 0.0035;
+    const swayAmp = playing || previewing ? 0.0065 : 0.0035;
     gl.clearColor(0.9, 0.95, 1.0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform1f(U.uTime, now * 0.001); gl.uniform1f(U.uZoom, 1.0);
     gl.uniform2f(U.uHeadSway, Math.sin(now * 0.0014) * swayAmp, Math.cos(now * 0.0022) * (swayAmp * 0.8));
@@ -963,51 +992,45 @@ AVATAR_HTML = r"""<!DOCTYPE html>
   }
   requestAnimationFrame(render);
 
-  function speakFallbackBrowserTTS() {
-    // Intentional visual preview only: do not substitute an unintended male browser voice.
-    lipSyncUntil = performance.now() + Math.min(4800, estDurationMs);
-    isSpeaking = false;
-    $('status').textContent = C.pending ? 'Preparing generated voice…' :
-      (C.audioError || 'Generated voice unavailable. Preview lips is available.');
-  }
-
   async function play() {
-    lipSyncUntil = performance.now() + estDurationMs;
-    isSpeaking = true;
     if (!C.audio) {
-      speakFallbackBrowserTTS();
+      $('status').textContent = C.pending ? 'Preparing generated voice…' :
+        (C.audioError || 'Voice unavailable. Use Preview lips for the animation test.');
       return;
     }
+    previewUntil = 0;
     try {
       ensureAudioAnalyser();
       if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
       sound.currentTime = 0;
       await sound.play();
     } catch (e) {
-      speakFallbackBrowserTTS();
+      $('status').textContent = 'Tap Play Audio Voice to start playback.';
     }
   }
 
   $('speak').onclick = play;
-  $('preview').onclick = () => { lipSyncUntil = performance.now() + 5000; $('status').textContent = 'Lip animation preview'; };
+  $('preview').onclick = () => {
+    sound.pause();
+    previewStart = performance.now();
+    previewUntil = previewStart + 5000;
+    $('status').textContent = 'Lip animation preview (no generated audio)';
+  };
   $('stop').onclick = () => {
     sound.pause();
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    isSpeaking = false;
-    lipSyncUntil = 0;
+    previewUntil = 0;
     mouthOpen = 0;
     $('status').textContent = 'Stopped';
   };
   sound.onplay = () => {
-    isSpeaking = true;
-    lipSyncUntil = performance.now() + Math.max(estDurationMs, (sound.duration || 6) * 1000);
-    $('status').textContent = 'Speaking…';
+    previewUntil = 0;
+    $('status').textContent = 'Speaking · audio-synced';
   };
-  sound.onended = sound.onpause = () => {
-    isSpeaking = false;
-    lipSyncUntil = 0;
-    $('status').textContent = 'Audio Ready';
+  sound.onended = () => { $('status').textContent = 'Audio complete'; };
+  sound.onpause = () => {
+    if (!sound.ended && !previewUntil) $('status').textContent = 'Paused';
   };
+  // Autoplay may be disallowed; in that case the existing Play button works.
   if (C.audio && C.replyId) setTimeout(play, 300);
 })();
 </script>
