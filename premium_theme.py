@@ -302,6 +302,44 @@ input:focus-visible,textarea:focus-visible,select:focus-visible {outline:3px sol
 /* Focus/hover stay visible, no layout, positioning, image or animation changes. */
 .stApp :is(button,input,textarea,[role="combobox"],[role="tab"]):focus-visible {outline:3px solid #c45f95!important;outline-offset:2px!important;}
 /* SELLER_ASSIST_CONTRAST_V37_END */
+
+/* SELLER_ASSIST_READABLE_INLINE_V41_START */
+/* Fix Streamlit's dark Markdown inline-code pills; leave code blocks and embedded frames alone. */
+.stApp [data-testid="stMain"] :is(.stMarkdown,[data-testid="stMarkdownContainer"],[data-testid="stChatMessageContent"],[data-testid="stAlert"]) :is(code,kbd,samp):not(pre code),
+.stApp [data-testid="stSidebar"] :is(.stMarkdown,[data-testid="stMarkdownContainer"]) :is(code,kbd,samp):not(pre code) {
+  background:#edf2ff!important;
+  color:#172b50!important;
+  -webkit-text-fill-color:#172b50!important;
+  border:1px solid #b9c8e9!important;
+  border-radius:5px!important;
+  padding:.08rem .26rem!important;
+  box-shadow:none!important;
+  text-shadow:none!important;
+  font-size:.84em!important;
+  font-weight:700!important;
+  line-height:1.6!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+  -webkit-box-decoration-break:clone;
+  box-decoration-break:clone;
+}
+.stApp [data-testid="stMain"] :is(.stMarkdown,[data-testid="stMarkdownContainer"],[data-testid="stChatMessageContent"],[data-testid="stAlert"]) :is(code,kbd,samp):not(pre code) *,
+.stApp [data-testid="stSidebar"] :is(.stMarkdown,[data-testid="stMarkdownContainer"]) :is(code,kbd,samp):not(pre code) * {
+  color:#172b50!important;
+  -webkit-text-fill-color:#172b50!important;
+  background:transparent!important;
+  text-shadow:none!important;
+}
+/* Table cells stay light and labels stay dark, including alternating rows. */
+.stApp [data-testid="stMain"] :is(.stMarkdown,[data-testid="stMarkdownContainer"]) table :is(td,th) {
+  color:#222c44!important;
+  -webkit-text-fill-color:#222c44!important;
+  border-color:#cfc6e0!important;
+}
+.stApp [data-testid="stMain"] :is(.stMarkdown,[data-testid="stMarkdownContainer"]) table tbody tr:nth-child(odd) td {background:#fff!important;}
+.stApp [data-testid="stMain"] :is(.stMarkdown,[data-testid="stMarkdownContainer"]) table tbody tr:nth-child(even) td {background:#f7f4fd!important;}
+.stApp [data-testid="stMain"] :is(.stMarkdown,[data-testid="stMarkdownContainer"]) table thead th {background:#eae2f7!important;}
+/* SELLER_ASSIST_READABLE_INLINE_V41_END */
 """
 
 
