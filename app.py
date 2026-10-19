@@ -834,21 +834,20 @@ AVATAR_HTML = r"""<!DOCTYPE html>
         if (dot(dL,dL)<1.0) su.y -= (1.0-dot(dL,dL))*uBlink*uEyeRadius.y*0.85;
         if (dot(dR,dR)<1.0) su.y -= (1.0-dot(dR,dR))*uBlink*uEyeRadius.y*0.85;
       }
-      // GENTLE PHOTO LIPS v36. Upper lip is completely untouched by mouth motion.
-      // No painted mouth / teeth / tongue, no vertical scaling or enlarged upper lip.
-      // Keep the actual-photo texture and let the voice envelope move only the lower lip.
-      float openAmt = clamp(uMouthOpen, 0.0, 0.74);
+      // PHOTO LOWER LIP v39: make the mouth opening visible without a second mouth.
+      // Upper lip and all pixels at/above the photographed lip seam remain untouched.
+      // Use only source-image pixels: NO black oval, artificial teeth or tongue.
+      float openAmt = clamp(uMouthOpen * 1.12, 0.0, 0.96);
       float hw = max(0.043, uMouthWidth * 0.52);
-      float hh = max(0.020, uMouthWidth * 0.225);
+      float hh = max(0.021, uMouthWidth * 0.245);
       float dx = (uv.x - uMouthCenter.x) / hw;
       float dy = (uv.y - uMouthCenter.y) / hh;
-      float fadeX = 1.0 - smoothstep(0.64, 1.04, abs(dx));
-      // Zero influence on/above the natural lip seam; move only the lower lip.
-      float lowerLip = smoothstep(0.04, 0.58, dy) *
-                       (1.0 - smoothstep(1.24, 1.90, dy));
-      // The former v35 shader displaced both lips by as much as 0.42*hh.
-      // This displacement is capped at 0.18*hh and has no upward-lip movement.
-      su.y -= openAmt * hh * 0.18 * fadeX * lowerLip;
+      float fadeX = 1.0 - smoothstep(0.69, 1.04, abs(dx));
+      // Narrower transition avoids the soft, oversized top-lip effect of v35.
+      // The top lip remains exactly the source photograph throughout the motion.
+      float lowerLip = smoothstep(0.02, 0.35, dy) *
+                       (1.0 - smoothstep(1.22, 1.72, dy));
+      su.y -= openAmt * hh * 0.38 * fadeX * lowerLip;
       vec4 col = texture2D(uTex, clamp(su, 0.002, 0.998));
       gl_FragColor = vec4(col.rgb, 1.0);
     }

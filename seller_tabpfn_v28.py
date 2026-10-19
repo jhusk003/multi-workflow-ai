@@ -94,12 +94,34 @@ def predict(history_text, current_text, *, token='', model_path='v3.5_default', 
             raise ForecastInputError('The TabPFN client is missing. Add tabpfn-client to requirements.txt and redeploy.') from error
         tabpfn_client.set_access_token(token)
         regressor_cls=TabPFNRegressor
+    # SELLER ASSIST TABPFN NDARRAY COMPATIBILITY v38
+    # Prior Labs' sklearn-compatible estimators expect array-like objects with
+    # a .shape, not nested Python lists. Keep the CSV/dataset API unchanged.
+    stage = 'preparing numeric inputs'
     try:
-        estimator=regressor_cls() if model_path=='default' else regressor_cls(model_path=model_path)
-        estimator.fit(train, targets)
-        values=estimator.predict(test)
+        import numpy as np
+        x_train = np.asarray(train, dtype=np.float64)
+        y_train = np.asarray(targets, dtype=np.float64)
+        x_test = np.asarray(test, dtype=np.float64)
+        if (x_train.ndim != 2 or x_test.ndim != 2 or y_train.ndim != 1
+                or x_train.shape[0] != y_train.shape[0]
+                or x_train.shape[1] != x_test.shape[1]):
+            raise ValueError('Historical and current feature dimensions do not match.')
+        stage = 'creating the requested regressor'
+        estimator = regressor_cls() if model_path == 'default' else regressor_cls(model_path=model_path)
+        stage = 'fitting historical sales'
+        estimator.fit(x_train, y_train)
+        stage = 'predicting current products'
+        values = np.asarray(estimator.predict(x_test), dtype=np.float64).reshape(-1)
     except Exception as error:
-        raise ForecastInputError('Prior Labs model inference failed ('+type(error).__name__+'). Check TABPFN_TOKEN, TabPFN model access, quota, and input data.') from error
+        # Never echo a token, and do not relabel a programming error as a
+        # token/quota failure. Show the underlying type, stage and short detail.
+        detail = str(error).replace(token, '[REDACTED]').strip()
+        detail = detail.replace('\n', ' ').replace('\r', ' ')
+        detail = detail[:240] or 'No additional detail returned.'
+        raise ForecastInputError(
+            f'Prior Labs failed while {stage} ({type(error).__name__}): {detail}'
+        ) from error
     if len(values)!=len(current):
         raise ForecastInputError('TabPFN returned an unexpected prediction count. No estimates displayed.')
     name=('Prior Labs server default (exact version must be verified in account)' if model_path=='default' else model_path)
