@@ -834,7 +834,7 @@ AVATAR_HTML = r"""<!DOCTYPE html>
       </div>
     </div>
     <audio id="voice" controls preload="auto"></audio>
-    <div class="status-bar"><span id="status">Audio Ready</span><span>Kawaii Shader Active</span></div>
+    <div class="status-bar"><span id="status">Audio Ready</span><span>Kawaii Lip-Sync Active</span></div>
     <div id="caption"></div>
   </div>
 </div>
@@ -842,12 +842,17 @@ AVATAR_HTML = r"""<!DOCTYPE html>
 (() => {
   'use strict';
   const C = __PAYLOAD__;
-  const $ = id => document.getElementById(id);
-  $('plate').textContent = C.name + ' · ' + C.room;
+  const $= id => document.getElementById(id);$('plate').textContent = C.name + ' · ' + C.room;
   $('caption').textContent = C.text;
 
   const sound = $('voice');
-  let landmarks = { mouthCenter: [0.50, 0.697], mouthWidth: 0.145, leftEye: [0.395, 0.485], rightEye: [0.605, 0.485], eyeRadius: [0.048, 0.025] };
+  const PRESETS = {
+    Morgan: { mouthCenter: [0.50, 0.692], mouthWidth: 0.155, leftEye: [0.395, 0.478], rightEye: [0.605, 0.478], eyeRadius: [0.048, 0.026] },
+    Jordan: { mouthCenter: [0.50, 0.685], mouthWidth: 0.152, leftEye: [0.400, 0.468], rightEye: [0.600, 0.468], eyeRadius: [0.048, 0.025] },
+    Taylor: { mouthCenter: [0.50, 0.690], mouthWidth: 0.158, leftEye: [0.400, 0.472], rightEye: [0.600, 0.472], eyeRadius: [0.048, 0.025] },
+    Alex:   { mouthCenter: [0.50, 0.695], mouthWidth: 0.152, leftEye: [0.395, 0.480], rightEye: [0.605, 0.480], eyeRadius: [0.048, 0.026] }
+  };
+  let landmarks = PRESETS[C.name] || PRESETS.Morgan;
   const canvas = $('glCanvas'), gl = canvas.getContext('webgl', { alpha: false, antialias: true });
 
   const VS = `attribute vec2 aPos; attribute vec2 aUv; varying vec2 vUv; uniform float uZoom; uniform vec2 uHeadSway; void main() { vUv = aUv; vec2 pos = aPos * uZoom + uHeadSway * smoothstep(0.9,0.1,aUv.y); gl_Position = vec4(pos, 0.0, 1.0); }`;
@@ -863,25 +868,31 @@ AVATAR_HTML = r"""<!DOCTYPE html>
       uv = clamp(uv, 0.002, 0.998); vec2 su = uv;
       vec2 dL = (uv - uLeftEye) / uEyeRadius, dR = (uv - uRightEye) / uEyeRadius;
       if (uBlink > 0.005) {
-        if (dot(dL,dL)<1.0) su.y -= (1.0-dot(dL,dL))*uBlink*uEyeRadius.y*0.82;
-        if (dot(dR,dR)<1.0) su.y -= (1.0-dot(dR,dR))*uBlink*uEyeRadius.y*0.82;
+        if (dot(dL,dL)<1.0) su.y -= (1.0-dot(dL,dL))*uBlink*uEyeRadius.y*0.85;
+        if (dot(dR,dR)<1.0) su.y -= (1.0-dot(dR,dR))*uBlink*uEyeRadius.y*0.85;
       }
       float openAmt = clamp(uMouthOpen, 0.0, 0.95);
-      float hw = max(0.040, uMouthWidth*0.5), hh = max(0.032, uMouthWidth*0.42);
+      float hw = max(0.044, uMouthWidth*0.52), hh = max(0.036, uMouthWidth*0.46);
       float dx = (uv.x - uMouthCenter.x)/hw, dy = (uv.y - uMouthCenter.y)/hh;
       float sc = max(0.0, 1.0 - dx*dx);
-      float upperY = -openAmt*0.09*sc*sqrt(sc), lowerY = openAmt*0.36*sc*sqrt(sc);
-      if (dy >= 0.0) su.y -= openAmt*hh*0.38*exp(-1.35*dx*dx)*exp(-0.85*dy*dy);
-      else su.y += openAmt*hh*0.08*exp(-1.35*dx*dx)*exp(-3.2*dy*dy);
+      float upperY = -openAmt*0.18*sc*sqrt(sc), lowerY = openAmt*0.58*sc*sqrt(sc);
+      if (dy >= 0.0) {
+        su.y -= openAmt*hh*0.78*exp(-1.15*dx*dx)*exp(-0.52*dy*dy);
+      } else {
+        su.y += openAmt*hh*0.20*exp(-1.25*dx*dx)*exp(-2.4*dy*dy);
+      }
       vec4 col = texture2D(uTex, clamp(su, 0.002, 0.998));
-      if (abs(dx) < 0.96 && openAmt > 0.03) {
+      if (abs(dx) < 0.96 && openAmt > 0.025) {
         float gh = max(0.001, lowerY - upperY);
-        float mask = smoothstep(upperY-0.045, upperY+0.035, dy)*(1.0-smoothstep(lowerY-0.045, lowerY+0.035, dy))*smoothstep(0.96, 0.72, abs(dx))*smoothstep(0.03, 0.14, openAmt);
+        float mask = smoothstep(upperY-0.05, upperY+0.03, dy)*(1.0-smoothstep(lowerY-0.05, lowerY+0.03, dy))*smoothstep(0.96, 0.68, abs(dx))*smoothstep(0.025, 0.11, openAmt);
         if (mask > 0.005) {
           float ry = clamp((dy - upperY) / gh, 0.0, 1.0);
-          vec3 cav = vec3(0.09, 0.025, 0.035);
-          cav = mix(cav, vec3(0.86, 0.84, 0.80), (1.0 - smoothstep(0.14, 0.36, ry)) * smoothstep(0.0, 0.08, ry) * 0.78);
-          col.rgb = mix(col.rgb, cav, mask*0.90);
+          vec3 cav = vec3(0.11, 0.03, 0.045);
+          float teeth = (1.0 - smoothstep(0.16, 0.34, ry)) * smoothstep(0.0, 0.07, ry) * smoothstep(0.88, 0.45, abs(dx));
+          float tongue = smoothstep(0.45, 0.75, ry) * (1.0 - smoothstep(0.85, 1.0, ry)) * smoothstep(0.75, 0.25, abs(dx));
+          cav = mix(cav, vec3(0.92, 0.90, 0.87), teeth * 0.82);
+          cav = mix(cav, vec3(0.58, 0.22, 0.27), tongue * 0.55);
+          col.rgb = mix(col.rgb, cav, mask*0.92);
         }
       }
       gl_FragColor = vec4(col.rgb, 1.0);
@@ -914,7 +925,27 @@ AVATAR_HTML = r"""<!DOCTYPE html>
   function resize() { let r = canvas.parentElement.getBoundingClientRect(), d = Math.min(window.devicePixelRatio||1, 2); canvas.width = Math.round(r.width*d); canvas.height = Math.round(r.height*d); gl.viewport(0,0,canvas.width,canvas.height); }
   window.addEventListener('resize', resize); resize();
 
-  let mouthOpen = 0, blink = 0, nextBlink = performance.now()+2000, isSpeaking = false;
+  const wordCount = (C.text || '').trim().split(/\s+/).filter(Boolean).length;
+  const estDurationMs = Math.min(22000, Math.max(4500, wordCount * 350));
+
+  let mouthOpen = 0, blink = 0, nextBlink = performance.now() + 1800, isSpeaking = false;
+  let lipSyncUntil = performance.now() + estDurationMs;
+
+  let audioCtx = null, analyser = null, freqData = null, sourceConnected = false;
+  function ensureAudioAnalyser() {
+    if (sourceConnected || !C.audio) return;
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 128;
+      freqData = new Uint8Array(analyser.frequencyBinCount);
+      const srcNode = audioCtx.createMediaElementSource(sound);
+      srcNode.connect(analyser);
+      analyser.connect(audioCtx.destination);
+      sourceConnected = true;
+    } catch (e) {}
+  }
+
   if (C.audio) {
     sound.src = 'data:audio/mpeg;base64,' + C.audio;
     sound.style.display = 'block';
@@ -922,57 +953,107 @@ AVATAR_HTML = r"""<!DOCTYPE html>
     sound.style.display = 'none';
   }
 
+  function getSyllableEnvelope(now) {
+    const phraseGate = Math.sin(now * 0.0045) > -0.68 ? 1.0 : 0.10;
+    const sylA = Math.max(0.0, Math.sin(now * 0.027));
+    const sylB = Math.max(0.0, Math.sin(now * 0.016 + 1.2));
+    const bilabialDip = 0.72 + 0.28 * Math.cos(now * 0.063);
+    return Math.min(0.92, (0.16 + 0.50 * sylA + 0.30 * sylB) * bilabialDip * phraseGate);
+  }
+
   function render(now) {
     requestAnimationFrame(render);
     if (!mediaReady) return;
-    if (now >= nextBlink) { let el = now - nextBlink; if (el < 150) blink = Math.sin((el/150)*Math.PI); else { blink = 0; nextBlink = now + 2500 + Math.random()*2500; } }
-    let targetOpen = isSpeaking ? (0.5 + 0.4*Math.sin(now*0.02)) : 0;
-    mouthOpen += (targetOpen - mouthOpen)*0.3;
+    if (now >= nextBlink) {
+      let el = now - nextBlink;
+      if (el < 150) blink = Math.sin((el / 150) * Math.PI);
+      else { blink = 0; nextBlink = now + 2400 + Math.random() * 2200; }
+    }
 
+    const activeSpeech = isSpeaking || (!sound.paused && !sound.ended && sound.currentTime > 0) || (now < lipSyncUntil);
+    let targetOpen = 0;
+    if (activeSpeech) {
+      let cad = getSyllableEnvelope(now);
+      if (analyser && freqData && !sound.paused) {
+        analyser.getByteFrequencyData(freqData);
+        let sum = 0;
+        for (let i = 1; i < 20; i++) sum += freqData[i];
+        let env = Math.min(0.95, (sum / (19 * 255)) * 2.4);
+        targetOpen = env > 0.04 ? (0.45 * env + 0.55 * cad) : cad;
+      } else {
+        targetOpen = cad;
+      }
+    }
+    mouthOpen += (targetOpen - mouthOpen) * 0.34;
+
+    const swayAmp = activeSpeech ? 0.0065 : 0.0035;
     gl.clearColor(0.9, 0.95, 1.0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.uniform1f(U.uTime, now*0.001); gl.uniform1f(U.uZoom, 1.0);
-    gl.uniform2f(U.uHeadSway, Math.sin(now*0.001)*0.004, Math.cos(now*0.002)*0.003);
-    gl.uniform2f(U.uCanvasSize, canvas.width, canvas.height); gl.uniform1f(U.uMediaAspect, img.naturalWidth/Math.max(1,img.naturalHeight));
+    gl.uniform1f(U.uTime, now * 0.001); gl.uniform1f(U.uZoom, 1.0);
+    gl.uniform2f(U.uHeadSway, Math.sin(now * 0.0014) * swayAmp, Math.cos(now * 0.0022) * (swayAmp * 0.8));
+    gl.uniform2f(U.uCanvasSize, canvas.width, canvas.height);
+    gl.uniform1f(U.uMediaAspect, img.naturalWidth / Math.max(1, img.naturalHeight));
     gl.uniform2fv(U.uMouthCenter, landmarks.mouthCenter); gl.uniform1f(U.uMouthWidth, landmarks.mouthWidth);
-    gl.uniform2fv(U.uLeftEye, landmarks.leftEye); gl.uniform2fv(U.uRightEye, landmarks.rightEye); gl.uniform2fv(U.uEyeRadius, landmarks.eyeRadius);
+    gl.uniform2fv(U.uLeftEye, landmarks.leftEye); gl.uniform2fv(U.uRightEye, landmarks.rightEye);
+    gl.uniform2fv(U.uEyeRadius, landmarks.eyeRadius);
     gl.uniform1f(U.uMouthOpen, mouthOpen); gl.uniform1f(U.uBlink, blink);
     gl.drawElements(gl.TRIANGLES, idx.length, gl.UNSIGNED_SHORT, 0);
   }
   requestAnimationFrame(render);
 
   function speakFallbackBrowserTTS() {
+    lipSyncUntil = performance.now() + estDurationMs;
+    isSpeaking = true;
+    $('status').textContent = 'Speaking…';
     if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(C.text);
-    u.onstart = () => { isSpeaking = true; $('status').textContent = 'Speaking (Browser TTS)…'; };
-    u.onend = u.onerror = () => { isSpeaking = false; $('status').textContent = 'Audio Ready'; };
-    window.speechSynthesis.speak(u);
+    try {
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.resume();
+      const u = new SpeechSynthesisUtterance(C.text);
+      window._activeUtterance = u;
+      u.onstart = () => { isSpeaking = true; lipSyncUntil = performance.now() + estDurationMs; $('status').textContent = 'Speaking (Browser TTS)…'; };
+      u.onend = () => { isSpeaking = false; lipSyncUntil = 0; $('status').textContent = 'Audio Ready'; };
+      u.onerror = () => { isSpeaking = false; $('status').textContent = 'Audio Ready'; };
+      window.speechSynthesis.speak(u);
+    } catch (e) {}
   }
 
   async function play() {
+    lipSyncUntil = performance.now() + estDurationMs;
+    isSpeaking = true;
     if (!C.audio) {
       speakFallbackBrowserTTS();
       return;
     }
     try {
+      ensureAudioAnalyser();
+      if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
       sound.currentTime = 0;
       await sound.play();
     } catch (e) {
       speakFallbackBrowserTTS();
     }
   }
+
   $('speak').onclick = play;
   $('stop').onclick = () => {
     sound.pause();
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     isSpeaking = false;
+    lipSyncUntil = 0;
+    mouthOpen = 0;
+    $('status').textContent = 'Stopped';
   };
-  sound.onplay = () => { isSpeaking = true; $('status').textContent = 'Speaking…'; };
-  sound.onended = sound.onpause = () => { isSpeaking = false; $('status').textContent = 'Audio Ready'; };
-  if (C.replyId && sessionStorage.getItem('p_'+C.name) !== C.replyId) {
-    sessionStorage.setItem('p_'+C.name, C.replyId);
-    setTimeout(play, 350);
-  }
+  sound.onplay = () => {
+    isSpeaking = true;
+    lipSyncUntil = performance.now() + Math.max(estDurationMs, (sound.duration || 6) * 1000);
+    $('status').textContent = 'Speaking…';
+  };
+  sound.onended = sound.onpause = () => {
+    isSpeaking = false;
+    lipSyncUntil = 0;
+    $('status').textContent = 'Audio Ready';
+  };
+  setTimeout(play, 300);
 })();
 </script>
 </body>
