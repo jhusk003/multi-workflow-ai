@@ -834,21 +834,21 @@ AVATAR_HTML = r"""<!DOCTYPE html>
         if (dot(dL,dL)<1.0) su.y -= (1.0-dot(dL,dL))*uBlink*uEyeRadius.y*0.85;
         if (dot(dR,dR)<1.0) su.y -= (1.0-dot(dR,dR))*uBlink*uEyeRadius.y*0.85;
       }
-      // PHOTO-ONLY LIPS v35. Preserve source pixels: never paint another mouth,
-      // a black interior, artificial teeth, or a second tongue over the portrait.
-      // The measured voice envelope still supplies uMouthOpen (from v34).
-      float openAmt = clamp(uMouthOpen, 0.0, 0.88);
-      float hw = max(0.048, uMouthWidth * 0.58);
-      float hh = max(0.025, uMouthWidth * 0.30);
+      // GENTLE PHOTO LIPS v36. Upper lip is completely untouched by mouth motion.
+      // No painted mouth / teeth / tongue, no vertical scaling or enlarged upper lip.
+      // Keep the actual-photo texture and let the voice envelope move only the lower lip.
+      float openAmt = clamp(uMouthOpen, 0.0, 0.74);
+      float hw = max(0.043, uMouthWidth * 0.52);
+      float hh = max(0.020, uMouthWidth * 0.225);
       float dx = (uv.x - uMouthCenter.x) / hw;
       float dy = (uv.y - uMouthCenter.y) / hh;
-      // Feather the whole correction into the photographed skin at all edges.
-      float fadeX = 1.0 - smoothstep(0.72, 1.18, abs(dx));
-      float fadeY = 1.0 - smoothstep(1.52, 2.35, abs(dy));
-      float lipMotion = openAmt * fadeX * fadeY;
-      float topToBottom = smoothstep(-0.60, 0.60, dy);
-      // Open upper/lower real lip pixels, with no overlaid synthetic geometry.
-      su.y += lipMotion * hh * mix(0.24, -0.42, topToBottom);
+      float fadeX = 1.0 - smoothstep(0.64, 1.04, abs(dx));
+      // Zero influence on/above the natural lip seam; move only the lower lip.
+      float lowerLip = smoothstep(0.04, 0.58, dy) *
+                       (1.0 - smoothstep(1.24, 1.90, dy));
+      // The former v35 shader displaced both lips by as much as 0.42*hh.
+      // This displacement is capped at 0.18*hh and has no upward-lip movement.
+      su.y -= openAmt * hh * 0.18 * fadeX * lowerLip;
       vec4 col = texture2D(uTex, clamp(su, 0.002, 0.998));
       gl_FragColor = vec4(col.rgb, 1.0);
     }
