@@ -123,6 +123,185 @@ input:focus-visible,textarea:focus-visible,select:focus-visible {outline:3px sol
 @media (prefers-reduced-motion: reduce) {
  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important;}
 }
+
+/* SELLER_ASSIST_CONTRAST_V37_START
+ * Presentation only. Preserve town image buttons, iframe portraits, AI, data and logic.
+ * Light main canvas / dark lettering; dark sidebar and banners / white lettering.
+ */
+:root {
+  --sa-v37-ink:#242b40;
+  --sa-v37-muted:#4d5569;
+  --sa-v37-paper:#ffffff;
+  --sa-v37-lavender:#f2eff9;
+  --sa-v37-soft:#f7f4fc;
+  --sa-v37-border:#c9bbdf;
+  --sa-v37-deep:#51377e;
+  --sa-v37-sidebar:#544277;
+}
+/* Main surface: resolves the previous purple-on-purple / dark-on-purple issue. */
+.stApp, .stApp [data-testid="stAppViewContainer"],
+.stApp [data-testid="stMain"], .stApp [data-testid="stMainBlockContainer"] {
+  color:var(--sa-v37-ink)!important;
+  background-color:var(--sa-v37-lavender)!important;
+}
+.stApp, .stApp [data-testid="stAppViewContainer"] {
+  background-image:linear-gradient(165deg,#f7f4fc 0%,#ece6f7 100%)!important;
+  background-attachment:fixed!important;
+}
+.stApp [data-testid="stMain"], .stApp [data-testid="stMainBlockContainer"] {
+  background:transparent!important;
+}
+/* Main typography and section labels on the light page surface. */
+.stApp [data-testid="stMain"] .stMarkdown h1:not(.sa-v20-header h1),
+.stApp [data-testid="stMain"] .stMarkdown h2,
+.stApp [data-testid="stMain"] .stMarkdown h3,
+.stApp [data-testid="stMain"] .stMarkdown h4,
+.stApp [data-testid="stMain"] .stMarkdown h5,
+.stApp [data-testid="stMain"] .stMarkdown h6,
+.stApp [data-testid="stMain"] .sa-v20-title,
+.stApp [data-testid="stMain"] .sa-village-intro h2,
+.stApp [data-testid="stMain"] .premium-section h2,
+.stApp [data-testid="stMain"] .premium-avatar-title {
+  color:var(--sa-v37-ink)!important;-webkit-text-fill-color:var(--sa-v37-ink)!important;
+}
+.stApp [data-testid="stMain"] .stMarkdown p,
+.stApp [data-testid="stMain"] .stMarkdown li,
+.stApp [data-testid="stMain"] .stMarkdown blockquote,
+.stApp [data-testid="stMain"] .sa-village-caption,
+.stApp [data-testid="stMain"] .premium-section p,
+.stApp [data-testid="stMain"] [data-testid="stWidgetLabel"] p {
+  color:var(--sa-v37-ink)!important;-webkit-text-fill-color:var(--sa-v37-ink)!important;
+}
+.stApp [data-testid="stMain"] [data-testid="stCaptionContainer"] p,
+.stApp [data-testid="stMain"] .stCaptionContainer p,
+.stApp [data-testid="stMain"] .premium-eyebrow,
+.stApp [data-testid="stMain"] .sa-village-intro .eyebrow {
+  color:var(--sa-v37-muted)!important;-webkit-text-fill-color:var(--sa-v37-muted)!important;
+}
+/* Deliberately dark banners: retain white title, subtitle and eyebrow. */
+.stApp [data-testid="stMain"] .kawaii-header h1,
+.stApp [data-testid="stMain"] .kawaii-header h1 span,
+.stApp [data-testid="stMain"] .kawaii-header p,
+.stApp [data-testid="stMain"] .sa-v20-header h1,
+.stApp [data-testid="stMain"] .sa-v20-header p,
+.stApp [data-testid="stMain"] .sa-v20-header .sa-v20-eyebrow {
+  color:#fff!important;-webkit-text-fill-color:#fff!important;
+}
+/* Keep the illustrated Home hero light text on its deliberately light image overlay. */
+.stApp [data-testid="stMain"] .sa-town-hero h1 {color:#222a40!important;-webkit-text-fill-color:#222a40!important;}
+.stApp [data-testid="stMain"] .sa-town-hero p {color:#364258!important;-webkit-text-fill-color:#364258!important;}
+.stApp [data-testid="stMain"] .sa-town-chip {color:#56420b!important;-webkit-text-fill-color:#56420b!important;}
+.stApp [data-testid="stMain"] .sa-town-badge {color:#30374b!important;-webkit-text-fill-color:#30374b!important;}
+/* Light card surfaces and their descendants: never white-on-white. */
+.stApp .kawaii-card,.stApp .kawaii-panel,.stApp .premium-mascot,
+.stApp .sa-v20-panel,.stApp [data-testid="stMetric"],
+.stApp [data-testid="stExpander"],.stApp [data-testid="stForm"],
+.stApp [data-testid="stChatMessage"],.stApp [data-testid="stFileUploader"] section {
+  color:var(--sa-v37-ink)!important;
+  border-color:var(--sa-v37-border)!important;
+}
+.stApp .kawaii-card,.stApp .kawaii-panel,.stApp .sa-v20-panel,
+.stApp [data-testid="stMetric"],.stApp [data-testid="stExpander"],
+.stApp [data-testid="stForm"] {background:var(--sa-v37-paper)!important;}
+.stApp [data-testid="stChatMessage"] {background:#f8f5fd!important;}
+.stApp [data-testid="stMain"] :is(.kawaii-card,.kawaii-panel,.premium-mascot,.sa-v20-panel,[data-testid="stMetric"],[data-testid="stExpander"],[data-testid="stForm"],[data-testid="stChatMessage"],[data-testid="stFileUploader"] section) :is(p,li,label,small,span,strong,h1,h2,h3,h4,h5,h6) {
+  color:var(--sa-v37-ink)!important;-webkit-text-fill-color:var(--sa-v37-ink)!important;
+}
+.stApp [data-testid="stMain"] :is([data-testid="stMetricLabel"],[data-testid="stMetricValue"],[data-testid="stMetricDelta"]) :is(p,div,span) {
+  color:var(--sa-v37-ink)!important;-webkit-text-fill-color:var(--sa-v37-ink)!important;opacity:1!important;
+}
+/* File labels, help text, radio/checkbox, tabs, sliders and expander headers. */
+.stApp [data-testid="stMain"] :is([data-testid="stFileUploader"],[data-testid="stRadio"],[data-testid="stCheckbox"],[data-testid="stSlider"],[data-testid="stSelectbox"],[data-testid="stMultiselect"],[data-testid="stTextInput"],[data-testid="stNumberInput"],[data-testid="stTextArea"],[data-testid="stExpander"]) :is(label,p,small,span,summary) {
+  color:var(--sa-v37-ink)!important;-webkit-text-fill-color:var(--sa-v37-ink)!important;
+}
+.stApp [data-testid="stMain"] [data-testid="stExpander"] summary,
+.stApp [data-testid="stMain"] [data-testid="stExpander"] summary:hover {
+  background:#eee8f8!important;color:var(--sa-v37-ink)!important;
+}
+.stApp [data-testid="stMain"] [data-testid="stTabs"] button[role="tab"] {color:#39425a!important;-webkit-text-fill-color:#39425a!important;}
+.stApp [data-testid="stMain"] [data-testid="stTabs"] button[role="tab"][aria-selected="true"] {color:#3b2668!important;-webkit-text-fill-color:#3b2668!important;border-color:#523781!important;}
+/* All form inputs: explicitly dark even if Streamlit/browser dark theme is enabled. */
+.stApp :is([data-testid="stTextInput"],[data-testid="stNumberInput"],[data-testid="stTextArea"],[data-testid="stDateInput"],[data-testid="stTimeInput"],[data-testid="stChatInput"]) :is(input,textarea),
+.stApp :is([data-testid="stSelectbox"],[data-testid="stMultiselect"]) [data-baseweb="select"] > div,
+.stApp [data-testid="stFileUploader"] section,
+.stApp [data-testid="stDataFrame"], .stApp [data-testid="stDataEditor"] {
+  background-color:#fff!important;color:var(--sa-v37-ink)!important;
+  -webkit-text-fill-color:var(--sa-v37-ink)!important;border-color:#a99ac3!important;
+  caret-color:var(--sa-v37-ink)!important;
+}
+.stApp :is(input,textarea)::placeholder {color:#5b6171!important;-webkit-text-fill-color:#5b6171!important;opacity:1!important;}
+.stApp [data-baseweb="select"] :is(span,div,input),
+.stApp [data-baseweb="select"] svg {color:var(--sa-v37-ink)!important;fill:var(--sa-v37-ink)!important;-webkit-text-fill-color:var(--sa-v37-ink)!important;}
+/* Sidebar stays dark. Restrict white lettering to the sidebar surface and navigation,
+   then REVERSE it inside pale controls. The original theme made everything white. */
+.stApp [data-testid="stSidebar"] {
+  background:linear-gradient(180deg,#5d497f 0%,#554073 100%)!important;
+  color:#fff!important;
+}
+.stApp [data-testid="stSidebar"] :is(.stMarkdown,p,small,label,span,h1,h2,h3,h4) {
+  color:#fff!important;-webkit-text-fill-color:#fff!important;
+}
+.stApp [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {color:#f3e9ff!important;-webkit-text-fill-color:#f3e9ff!important;}
+.stApp [data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label,
+.stApp [data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label * {
+  color:#fff!important;-webkit-text-fill-color:#fff!important;
+}
+.stApp [data-testid="stSidebar"] :is([data-testid="stSelectbox"],[data-testid="stMultiselect"]) [data-baseweb="select"],
+.stApp [data-testid="stSidebar"] :is([data-testid="stSelectbox"],[data-testid="stMultiselect"]) [data-baseweb="select"] > div,
+.stApp [data-testid="stSidebar"] :is([data-testid="stTextInput"],[data-testid="stNumberInput"],[data-testid="stTextArea"]) :is(input,textarea) {
+  background:#fff!important;color:#242b40!important;-webkit-text-fill-color:#242b40!important;
+  border-color:#a99ac3!important;caret-color:#242b40!important;
+}
+.stApp [data-testid="stSidebar"] :is([data-testid="stSelectbox"],[data-testid="stMultiselect"]) [data-baseweb="select"] :is(span,div,input,svg),
+.stApp [data-testid="stSidebar"] :is([data-testid="stSelectbox"],[data-testid="stMultiselect"]) [data-baseweb="select"] p {
+  color:#242b40!important;-webkit-text-fill-color:#242b40!important;fill:#242b40!important;
+}
+/* Streamlit's listbox popover may mount outside .stApp. */
+[data-baseweb="popover"] [role="listbox"], [data-baseweb="menu"], [role="listbox"] {
+  background:#fff!important;color:#242b40!important;border:1px solid #c9bbdf!important;
+}
+[data-baseweb="popover"] [role="option"], [data-baseweb="menu"] [role="option"], [role="listbox"] [role="option"] {
+  background:#fff!important;color:#242b40!important;-webkit-text-fill-color:#242b40!important;
+}
+[data-baseweb="popover"] [role="option"] *, [data-baseweb="menu"] [role="option"] *, [role="listbox"] [role="option"] * {
+  color:#242b40!important;-webkit-text-fill-color:#242b40!important;
+}
+[data-baseweb="popover"] [role="option"]:hover,[data-baseweb="menu"] [role="option"]:hover,[role="listbox"] [role="option"]:hover,
+[data-baseweb="popover"] [aria-selected="true"], [role="listbox"] [aria-selected="true"] {background:#ece4f8!important;}
+/* Actions: white labels on dark-purple primary buttons, dark labels on light secondary. */
+.stApp :is(.stButton,.stDownloadButton,[data-testid="stFormSubmitButton"],[data-testid="stFileUploader"]) button:not([kind="primary"]):not([data-testid="stBaseButton-primary"]),
+.stApp [data-testid="stMain"] button[kind="secondary"] {
+  background:#fff!important;color:#342b4d!important;-webkit-text-fill-color:#342b4d!important;border-color:#9886b9!important;
+}
+.stApp :is(.stButton,.stDownloadButton,[data-testid="stFormSubmitButton"]) :is(button[kind="primary"],[data-testid="stBaseButton-primary"]) {
+  background:#553880!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border-color:#553880!important;
+}
+.stApp :is(.stButton,.stDownloadButton,[data-testid="stFormSubmitButton"]) :is(button[kind="primary"],[data-testid="stBaseButton-primary"]) :is(p,span,div,svg) {
+  color:#fff!important;-webkit-text-fill-color:#fff!important;
+}
+.stApp :is(.stButton,.stDownloadButton,[data-testid="stFormSubmitButton"]) button:not([kind="primary"]):not([data-testid="stBaseButton-primary"]) :is(p,span,div,svg) {
+  color:#342b4d!important;-webkit-text-fill-color:#342b4d!important;
+}
+.stApp :is(.stButton,.stDownloadButton,[data-testid="stFormSubmitButton"]) button:disabled {
+  opacity:1!important;background:#e8e3ee!important;color:#5c5964!important;-webkit-text-fill-color:#5c5964!important;
+}
+.stApp :is(.stButton,.stDownloadButton,[data-testid="stFormSubmitButton"]) button:disabled * {
+  color:#5c5964!important;-webkit-text-fill-color:#5c5964!important;
+}
+/* Critical carve-out: illustrated image buttons intentionally conceal their textual labels. */
+.stApp [class*="st-key-sa_image_"] button[kind="primary"],
+.stApp [class*="st-key-sa_image_"] button[kind="primary"] * {
+  color:transparent!important;-webkit-text-fill-color:transparent!important;
+}
+/* Table and code readability without changing raw data. */
+.stApp [data-testid="stMain"] .stMarkdown table {background:#fff!important;color:#242b40!important;border:1px solid #c9bbdf!important;}
+.stApp [data-testid="stMain"] .stMarkdown :is(th,td) {color:#242b40!important;-webkit-text-fill-color:#242b40!important;border-color:#d7cce8!important;}
+.stApp [data-testid="stMain"] .stMarkdown th {background:#eae2f7!important;}
+.stApp [data-testid="stMain"] .stMarkdown tr:nth-child(even) {background:#f7f4fc!important;}
+.stApp [data-testid="stMain"] :is([data-testid="stCodeBlock"],.stCodeBlock) {background:#f8f6fc!important;color:#242b40!important;}
+/* Focus/hover stay visible, no layout, positioning, image or animation changes. */
+.stApp :is(button,input,textarea,[role="combobox"],[role="tab"]):focus-visible {outline:3px solid #c45f95!important;outline-offset:2px!important;}
+/* SELLER_ASSIST_CONTRAST_V37_END */
 """
 
 
