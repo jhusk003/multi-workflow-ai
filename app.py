@@ -810,8 +810,8 @@ AVATAR_HTML = r"""<!DOCTYPE html>
   const sound = $('voice');
   const PRESETS = {
     Morgan: { mouthCenter: [0.50, 0.692], mouthWidth: 0.155, leftEye: [0.395, 0.478], rightEye: [0.605, 0.478], eyeRadius: [0.048, 0.026] },
-    Jordan: { mouthCenter: [0.50, 0.685], mouthWidth: 0.152, leftEye: [0.400, 0.468], rightEye: [0.600, 0.468], eyeRadius: [0.048, 0.025] },
-    Taylor: { mouthCenter: [0.50, 0.690], mouthWidth: 0.158, leftEye: [0.400, 0.472], rightEye: [0.600, 0.472], eyeRadius: [0.048, 0.025] },
+    Jordan: { mouthCenter: [0.50, 0.560], mouthWidth: 0.152, leftEye: [0.400, 0.468], rightEye: [0.600, 0.468], eyeRadius: [0.048, 0.025] },
+    Taylor: { mouthCenter: [0.505, 0.617], mouthWidth: 0.158, leftEye: [0.400, 0.472], rightEye: [0.600, 0.472], eyeRadius: [0.048, 0.025] },
     Alex:   { mouthCenter: [0.50, 0.695], mouthWidth: 0.152, leftEye: [0.395, 0.480], rightEye: [0.605, 0.480], eyeRadius: [0.048, 0.026] }
   };
   let landmarks = PRESETS[C.name] || PRESETS.Morgan;
@@ -834,30 +834,22 @@ AVATAR_HTML = r"""<!DOCTYPE html>
         if (dot(dL,dL)<1.0) su.y -= (1.0-dot(dL,dL))*uBlink*uEyeRadius.y*0.85;
         if (dot(dR,dR)<1.0) su.y -= (1.0-dot(dR,dR))*uBlink*uEyeRadius.y*0.85;
       }
-      float openAmt = clamp(uMouthOpen, 0.0, 0.95);
-      float hw = max(0.044, uMouthWidth*0.52), hh = max(0.036, uMouthWidth*0.46);
-      float dx = (uv.x - uMouthCenter.x)/hw, dy = (uv.y - uMouthCenter.y)/hh;
-      float sc = max(0.0, 1.0 - dx*dx);
-      float upperY = -openAmt*0.18*sc*sqrt(sc), lowerY = openAmt*0.58*sc*sqrt(sc);
-      if (dy >= 0.0) {
-        su.y -= openAmt*hh*0.78*exp(-1.15*dx*dx)*exp(-0.52*dy*dy);
-      } else {
-        su.y += openAmt*hh*0.20*exp(-1.25*dx*dx)*exp(-2.4*dy*dy);
-      }
+      // PHOTO-ONLY LIPS v35. Preserve source pixels: never paint another mouth,
+      // a black interior, artificial teeth, or a second tongue over the portrait.
+      // The measured voice envelope still supplies uMouthOpen (from v34).
+      float openAmt = clamp(uMouthOpen, 0.0, 0.88);
+      float hw = max(0.048, uMouthWidth * 0.58);
+      float hh = max(0.025, uMouthWidth * 0.30);
+      float dx = (uv.x - uMouthCenter.x) / hw;
+      float dy = (uv.y - uMouthCenter.y) / hh;
+      // Feather the whole correction into the photographed skin at all edges.
+      float fadeX = 1.0 - smoothstep(0.72, 1.18, abs(dx));
+      float fadeY = 1.0 - smoothstep(1.52, 2.35, abs(dy));
+      float lipMotion = openAmt * fadeX * fadeY;
+      float topToBottom = smoothstep(-0.60, 0.60, dy);
+      // Open upper/lower real lip pixels, with no overlaid synthetic geometry.
+      su.y += lipMotion * hh * mix(0.24, -0.42, topToBottom);
       vec4 col = texture2D(uTex, clamp(su, 0.002, 0.998));
-      if (abs(dx) < 0.96 && openAmt > 0.025) {
-        float gh = max(0.001, lowerY - upperY);
-        float mask = smoothstep(upperY-0.05, upperY+0.03, dy)*(1.0-smoothstep(lowerY-0.05, lowerY+0.03, dy))*smoothstep(0.96, 0.68, abs(dx))*smoothstep(0.025, 0.11, openAmt);
-        if (mask > 0.005) {
-          float ry = clamp((dy - upperY) / gh, 0.0, 1.0);
-          vec3 cav = vec3(0.11, 0.03, 0.045);
-          float teeth = (1.0 - smoothstep(0.16, 0.34, ry)) * smoothstep(0.0, 0.07, ry) * smoothstep(0.88, 0.45, abs(dx));
-          float tongue = smoothstep(0.45, 0.75, ry) * (1.0 - smoothstep(0.85, 1.0, ry)) * smoothstep(0.75, 0.25, abs(dx));
-          cav = mix(cav, vec3(0.92, 0.90, 0.87), teeth * 0.82);
-          cav = mix(cav, vec3(0.58, 0.22, 0.27), tongue * 0.55);
-          col.rgb = mix(col.rgb, cav, mask*0.92);
-        }
-      }
       gl_FragColor = vec4(col.rgb, 1.0);
     }
   `;
