@@ -812,7 +812,7 @@ AVATAR_HTML = r"""<!DOCTYPE html>
     Morgan: { mouthCenter: [0.50, 0.692], mouthWidth: 0.155, leftEye: [0.395, 0.478], rightEye: [0.605, 0.478], eyeRadius: [0.048, 0.026] },
     Jordan: { mouthCenter: [0.50, 0.560], mouthWidth: 0.152, leftEye: [0.400, 0.468], rightEye: [0.600, 0.468], eyeRadius: [0.048, 0.025] },
     Taylor: { mouthCenter: [0.505, 0.617], mouthWidth: 0.158, leftEye: [0.400, 0.472], rightEye: [0.600, 0.472], eyeRadius: [0.048, 0.025] },
-    Alex:   { mouthCenter: [0.50, 0.695], mouthWidth: 0.152, leftEye: [0.395, 0.480], rightEye: [0.605, 0.480], eyeRadius: [0.048, 0.026] }
+    Alex:   { mouthCenter: [0.580, 0.550], mouthWidth: 0.132, leftEye: [0.395, 0.480], rightEye: [0.605, 0.480], eyeRadius: [0.048, 0.026] }
   };
   let landmarks = PRESETS[C.name] || PRESETS.Morgan;
   const canvas = $('glCanvas'), gl = canvas.getContext('webgl', { alpha: false, antialias: true });
