@@ -1,3 +1,6 @@
+# SELLER ASSIST COHESIVE USER SHADER MERGE v33
+# SELLER ASSIST SHARED BRAINS v23
+# SELLER ASSIST EXPLORE MODE v21
 """Seller Assist v16.1: Operable Whimsical Kawaii Edition.
 Features: Fully Operable Clickable Kawaii Character & Building Cards, True Transparent PNG Illustrations,
 Global CSV Sync, SQLite Persistence, Marketplace Fee Simulator, 1-Click Exports, and XP Gamification.
@@ -20,6 +23,18 @@ from datetime import datetime
 
 import streamlit as st
 import streamlit.components.v1 as components
+from seller_fast_voice_v30 import schedule as _sa_schedule_voice, collect as _sa_collect_voice, is_pending as _sa_voice_pending
+from seller_portraits import embedded_portrait
+from seller_character_brain import reply as _sa_shared_brain_reply, BrainUnavailable as _sa_brain_unavailable
+from seller_ai_workflows import get_prefs as _sa_get_prefs, specialist_room_tools as _sa_specialist_room_tools
+from seller_business_engine import (
+    inventory_report as _sa_inventory_report,
+    purchase_order as _sa_purchase_order,
+    bulk_listing_csv as _sa_bulk_listing_csv,
+    estimate_pl as _sa_estimate_pl,
+    answer_from_shop_data as _sa_answer_from_shop_data,
+    parse_inventory as _sa_parse_inventory,
+)
 
 try:
     import sentry_sdk
@@ -33,6 +48,13 @@ st.set_page_config(
     page_icon="🌸",
     layout="wide",
 )
+
+# SELLER ASSIST SETTINGS DATA v21.2 — old session selections remain useful.
+if st.session_state.get("nav_selector") == "📁 Shop Data":
+    st.session_state["nav_selector"] = "⚙️ Settings & Data"
+    st.session_state["sa_settings_section_request"] = "📁 Data & Uploads"
+elif st.session_state.get("nav_selector") == "⚙️ Settings":
+    st.session_state["nav_selector"] = "⚙️ Settings & Data"
 
 DB_FILE = "seller_assist.db"
 
@@ -74,22 +96,6 @@ def db_load_todos():
     c.execute("SELECT id, task, done FROM todos")
     rows = c.fetchall()
     conn.close()
-    if not rows:
-        defaults = [
-            ("Restock SKU SLR-104 (Linen Apron - 3.2 days left, EOQ: 22u)", 0),
-            ("Restock SKU SLR-106 (Matcha Whisk Holder - 3.0 days left, EOQ: 28u)", 0),
-            ("Approve Supplier Purchase Order #PO-20261016 ($521.00)", 1),
-            ("Review quarterly Schedule C Line 31 net profit & tax deductions", 0),
-            ("Optimize 13 long-tail Etsy SEO tags for Lavender Soy Candle", 1),
-            ("Run SerpApi live competitor pricing check on top 3 SKUs", 0),
-        ]
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
-        for t, d in defaults:
-            c.execute("INSERT INTO todos (task, done) VALUES (?, ?)", (t, d))
-        conn.commit()
-        conn.close()
-        return [{"id": i+1, "task": t, "done": bool(d)} for i, (t, d) in enumerate(defaults)]
     return [{"id": r[0], "task": r[1], "done": bool(r[2])} for r in rows]
 
 def db_save_todo_status(todo_id, done):
@@ -146,7 +152,7 @@ ASSISTANTS = {
         "voice": "en-US-EmmaNeural", "eleven_voice_id": "EXAVITQu4vr4xnSDxMaL",
         "photo": "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=900&q=85",
         "tone": "cheerful, analytical and supportive",
-        "specialty": "TabPFN-3.5 inventory forecasting, EOQ reorder calculation, stockout prediction, safety stock.",
+        "specialty": "Wilson EOQ and reorder-point calculations, interpreting stock and safety-stock estimates.",
     },
     "Level 2: Listing Studio": {
         "name": "Jordan", "level": "LEVEL 2", "color": "#70d6ff",
@@ -167,9 +173,16 @@ ASSISTANTS = {
         "voice": "en-US-AvaNeural", "eleven_voice_id": "21m00Tcm4TlvDq8ikWAM",
         "photo": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=85",
         "tone": "precise, encouraging and helpful",
-        "specialty": "Schedule C deductions, P&L categorization, state sales-tax economic nexus.",
+        "specialty": "Product-level estimated profit, costs, returns, budgeting and educational tax questions.",
     },
 }
+
+# Keep the supplied portrait shader; replace only missing remote image dependencies.
+ASSISTANTS['Level 2: Listing Studio']['photo'] = embedded_portrait('jordan')
+ASSISTANTS['Level 3: Ops & PO Room']['photo'] = embedded_portrait('taylor')
+ASSISTANTS['Level 4: Finance & Tax Desk']['voice'] = 'en-US-JennyNeural'
+ASSISTANTS['Level 1: Inventory Lab']['voice'] = 'en-US-EmmaNeural'
+
 
 st.markdown("""
 <style>
@@ -334,6 +347,9 @@ div[data-testid="stForm"] {
 </style>
 """, unsafe_allow_html=True)
 
+from premium_theme import apply_premium_theme
+apply_premium_theme()
+
 STATE_KEY = "seller_assist_kawaii_workspaces"
 
 def new_workspace():
@@ -341,7 +357,7 @@ def new_workspace():
         "messages": [], "last_reply": "", "last_audio": "", "word_timings": [],
         "reply_id": "", "file_text": SAMPLE_SELLER_CSV, "file_name": "global_sync.csv", "tabpfn_report": "",
         "schedule_c_pl": "", "generated_po": "", "exported_listing_csv": "",
-        "last_model_used": "Google Gemma 3 (Open-Weight)"
+        "last_model_used": "No AI model used yet"
     }
 
 def ensure_workspaces(session):
@@ -356,7 +372,7 @@ def ensure_workspaces(session):
     if "seller_xp" not in session:
         session["seller_xp"] = db_b["xp"]
     if "telemetry" not in session:
-        session["telemetry"] = {"calls": 28, "last_latency_ms": 174, "errors": 0}
+        session["telemetry"] = {"calls": 0, "last_latency_ms": 0, "errors": 0}
     return session[STATE_KEY]
 
 workspaces = ensure_workspaces(st.session_state)
@@ -375,227 +391,141 @@ def add_xp(amount):
     db_save_budget("xp", st.session_state["seller_xp"])
 
 def fetch_serpapi_competitor_pricing(query):
-    key = secret("SERPAPI_API_KEY")
-    if not key:
-        return (
-            f"### 🌸 Kawaii Market Benchmark for **{query}**\n"
-            "- **Etsy Bestseller Avg:** `$24.00` · Free shipping eligible\n"
-            "- **Shopify Boutique Median:** `$26.50` · 68% gross margin\n"
-            "- **Amazon Handmade Range:** `$19.99 – $29.99`\n"
-            "- **AI Tip:** Price at **`$24.50`** with a cute sticker bundle to boost conversion!"
-        )
+    """Fetch actual SerpApi results, never label example prices live."""
+    api_key = secret('SERPAPI_API_KEY')
+    if not api_key:
+        return 'Live competitor prices unavailable: configure SERPAPI_API_KEY under Render secrets. No prices have been fetched.'
+    q = str(query or '').strip()
+    if not q:
+        return 'Enter a product to research.'
     try:
-        url = f"https://serpapi.com/search.json?engine=google_shopping&q={urllib.parse.quote(query)}&api_key={key}"
-        req = urllib.request.Request(url, headers={"User-Agent": "SellerAssist/1.0"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            payload = json.load(resp)
-        results = payload.get("shopping_results", [])
+        url = 'https://serpapi.com/search.json?engine=google_shopping&q=' + urllib.parse.quote(q) + '&api_key=' + urllib.parse.quote(api_key)
+        request = urllib.request.Request(url,headers={'User-Agent':'SellerAssist/1.0'})
+        with urllib.request.urlopen(request,timeout=15) as response:
+            payload = json.load(response)
+        results = payload.get('shopping_results',[])
         if not results:
-            return f"No live shopping results found for '{query}'."
-        lines = [f"### 🌸 Live SerpApi Results for '{query}':"]
-        for item in results[:5]:
-            title = item.get("title", "Product")
-            price = item.get("price", "N/A")
-            source = item.get("source", "Retailer")
-            lines.append(f"- **{title}**: `{price}` (*{source}*)")
-        return "\n".join(lines)
-    except Exception as e:
-        return f"SerpApi lookup notice: {e}"
+            return 'No shopping results returned by SerpApi for this query.'
+        lines = [f'### Live SerpApi results for {q} (verify before pricing decisions)']
+        for item in results[:8]:
+            title = str(item.get('title') or 'Untitled').replace('|','/')
+            price = str(item.get('price') or 'Not stated')
+            source = str(item.get('source') or 'Unspecified source')
+            lines.append(f'- **{title}** — {price} ({source})')
+        return '\n'.join(lines)
+    except urllib.error.HTTPError as exc:
+        return f'Live SerpApi request failed (HTTP {exc.code}). Check your key, quota, or query.'
+    except Exception:
+        return 'Live SerpApi request failed. Please retry or check connectivity.'
+
+
+
+# SELLER ASSIST BUSINESS ENGINE v22 — keep previous app.py function interfaces.
+def _sa_inventory_source(workspace=None):
+    """Inventory upload from Settings & Data wins; financial uploads do not replace stock."""
+    if st.session_state.get('sa_shared_kind') == 'inventory':
+        value = st.session_state.get('sa_shared_csv', '')
+        if value:
+            return value
+    if isinstance(workspace, dict):
+        candidate = workspace.get('file_text', '')
+        if isinstance(candidate, str):
+            try:
+                _sa_parse_inventory(candidate)
+                return candidate
+            except ValueError:
+                pass
+    return SAMPLE_SELLER_CSV
 
 def run_tabpfn_inventory_forecast(csv_text, fee_rate=0.095):
-    rows = list(csv.DictReader(io.StringIO(csv_text)))
-    if not rows:
-        return "No CSV rows found."
-    total_profit = 0.0
-    sku_forecasts, urgent_reorders = [], []
-    for idx, r in enumerate(rows):
-        sku = r.get("sku") or f"ITEM-{idx+1}"
-        name = r.get("product_name") or sku
-        try:
-            cost = float(r.get("unit_cost_usd", 5))
-            price = float(r.get("retail_price_usd", 20))
-            stock = float(r.get("stock_on_hand", 10))
-            sales = float(r.get("weekly_units_sold", 7))
-            lead = float(r.get("supplier_lead_days", 7))
-        except Exception:
-            continue
-        velocity = max(0.1, sales / 7.0)
-        days_stockout = round(stock / velocity, 1)
-        net_profit = price - cost - (price * fee_rate)
-        total_profit += net_profit * sales
-        eoq_units = max(12, int(round(velocity * (lead + 7))))
-        if days_stockout <= lead:
-            urgent_reorders.append(
-                f"- **{sku} ({name})**: **{days_stockout}d** left (Lead: {int(lead)}d) → **Order EOQ: `{eoq_units} units`**"
-            )
-        sku_forecasts.append(f"| {sku} | {name[:18]} | {int(stock)} | {days_stockout}d | {eoq_units}u | ${net_profit:.2f} |")
-    return (
-        f"### 🔮 TabPFN-3.5 Forecast & EOQ Restock Plan\n"
-        f"- **Weekly Net Profit:** `${total_profit:,.2f}`\n\n"
-        "| SKU | Item | Stock | Horizon | EOQ Order | Unit Net |\n|---|---|---|---|---|---|\n"
-        + "\n".join(sku_forecasts)
-        + "\n\n#### 🚨 Urgent EOQ Reorder Alerts:\n"
-        + "\n".join(urgent_reorders or ["- All stock levels exceed supplier lead times."])
-    )
+    """Wilson EOQ and reorder-point estimates; no TabPFN inference performed."""
+    try:
+        return _sa_inventory_report(csv_text, fee_rate)
+    except ValueError as error:
+        return f"Invalid inventory CSV: {error}"
 
 def generate_schedule_c_pl(csv_text, fee_rate=0.095):
-    rows = list(csv.DictReader(io.StringIO(csv_text)))
-    rev = sum(float(r.get("retail_price_usd", 20)) * float(r.get("weekly_units_sold", 7)) for r in rows) if rows else 4850.0
-    cogs, fees = rev * 0.30, rev * fee_rate
-    net = rev - cogs - fees
-    annualized_rev = rev * 52.0
-    nexus_flag = "⚠️ Over $100k Annualized Economic Nexus Threshold" if annualized_rev >= 100000 else "✅ Under $100k Economic Nexus Threshold"
-    return (
-        "### 📊 Schedule C P&L & Nexus Summary\n"
-        f"- **Weekly Gross Sales:** `${rev:,.2f}` (*Annualized: `${annualized_rev:,.2f}`*)\n"
-        f"- **COGS (Line 4):** `${cogs:,.2f}`\n"
-        f"- **Marketplace Fees (Line 10):** `${fees:,.2f}`\n"
-        f"- **Net Profit (Line 31):** **`${net:,.2f}`**\n"
-        f"- **Sales-Tax Nexus Status:** {nexus_flag}"
-    )
+    """Educational product-level P&L estimate; not tax preparation."""
+    try:
+        return _sa_estimate_pl(csv_text, fee_rate)
+    except ValueError as error:
+        return f"Cannot estimate P&L: {error}"
 
 def generate_supplier_po(workspace):
-    po_id = f"PO-{datetime.now().strftime('%Y%m%d')}-{random.randint(100,999)}"
-    return (
-        f"### 📦 Automated EOQ Purchase Order `{po_id}`\n"
-        "- **Vendor:** Primary Artisan Supplier LLC\n"
-        "- **Line Items:** `SLR-101` (45u EOQ), `SLR-104` (30u EOQ), `SLR-106` (28u EOQ)\n"
-        "- **Total PO Cost:** `$521.00` · *Terms: Net 30*"
-    )
+    """Compatibility interface: always returns a text report."""
+    try:
+        report, tasks = _sa_purchase_order(_sa_inventory_source(workspace))
+        st.session_state['sa_latest_po_tasks'] = tasks
+        return report
+    except ValueError as error:
+        st.session_state['sa_latest_po_tasks'] = []
+        return f"Cannot build purchase order: {error}"
 
-def generate_shopify_etsy_listing_csv(title, price, category):
-    buf = io.StringIO()
-    writer = csv.writer(buf)
-    writer.writerow(["Handle", "Title", "Body", "Vendor", "Tags", "Price", "Inventory"])
-    writer.writerow([title.lower().replace(" ", "-"), title, f"Handcrafted {title}.", "Seller Assist", category, price, "25"])
-    return buf.getvalue()
+def generate_shopify_etsy_listing_csv(title, price=None, category=None):
+    """Compatible with legacy title/price/category and new full-inventory CSV."""
+    if price is None and category is None:
+        source = title
+    else:
+        buf = io.StringIO(newline='')
+        writer = csv.writer(buf)
+        writer.writerow(['sku', 'product_name', 'category', 'unit_cost_usd', 'retail_price_usd', 'stock_on_hand', 'weekly_units_sold', 'supplier_lead_days', 'return_rate_pct'])
+        writer.writerow(['EXAMPLE-001', title, category or 'General', '0', price or '0', '25', '0', '7', '0'])
+        source = buf.getvalue()
+    try:
+        output, warnings = _sa_bulk_listing_csv(source)
+        st.session_state['sa_latest_listing_warnings'] = warnings
+        return output
+    except ValueError as error:
+        st.session_state['sa_latest_listing_warnings'] = [str(error)]
+        return ''
 
 def run_ai(mode, workspace, prompt, reference=""):
+    # SELLER ASSIST SHARED BRAINS v23 — same brain and history as workflow pages.
     t0 = time.time()
-    ast = ASSISTANTS[mode]
-    sys = (
-        f"You are {ast['name']}, the {mode} specialist in Seller Assist (Kawaii Edition), "
-        f"speaking in a {ast['tone']} style. {ast['specialty']} "
-        "Give concise, joyful, actionable answers with exact figures and SKU numbers."
-    )
-    user_content = prompt.strip() or "Review my shop data and highlight top actions."
-    if workspace.get("tabpfn_report"):
-        user_content += "\n\n[TABPFN REPORT]:\n" + workspace["tabpfn_report"][:2500]
-    if workspace.get("schedule_c_pl"):
-        user_content += "\n\n[SCHEDULE C P&L]:\n" + workspace["schedule_c_pl"][:1500]
-    if reference:
-        user_content += "\n\n[SELLER DATA]:\n" + reference[:4000]
-
-    messages = [
-        {"role": "system", "content": sys},
-        *[{"role": m["role"], "content": m["content"]} for m in workspace["messages"][-10:]],
-        {"role": "user", "content": user_content},
-    ]
-
-    reply = ""
-    if secret("GEMINI_API_KEY") or secret("GOOGLE_API_KEY"):
-        key = secret("GEMINI_API_KEY") or secret("GOOGLE_API_KEY")
-        for g_model in ("gemma-3-27b-it", "gemini-2.5-flash"):
-            try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{g_model}:generateContent?key=" + urllib.parse.quote(key)
-                payload = {"contents": [{"role": "user", "parts": [{"text": sys + "\n\nUser Question: " + user_content}]}]}
-                req = urllib.request.Request(url, json.dumps(payload).encode("utf-8"), {"Content-Type": "application/json"})
-                with urllib.request.urlopen(req, timeout=20) as r:
-                    reply = "".join(p.get("text", "") for p in json.load(r)["candidates"][0]["content"]["parts"]).strip()
-                if reply:
-                    workspace["last_model_used"] = f"Google {g_model}"
-                    break
-            except Exception:
-                pass
-
-    if not reply and secret("GROQ_API_KEY"):
-        try:
-            payload = {"model": "llama-3.3-70b-versatile", "messages": messages, "temperature": 0.65, "max_tokens": 700}
-            req = urllib.request.Request(
-                "https://api.groq.com/openai/v1/chat/completions",
-                json.dumps(payload).encode("utf-8"),
-                {"Content-Type": "application/json", "Authorization": "Bearer " + secret("GROQ_API_KEY")},
-            )
-            with urllib.request.urlopen(req, timeout=20) as r:
-                reply = json.load(r)["choices"][0]["message"]["content"].strip()
-            if reply:
-                workspace["last_model_used"] = "Groq Llama-3.3-70B"
-        except Exception:
-            pass
-
-    if not reply:
-        try:
-            req = urllib.request.Request(
-                "https://text.pollinations.ai/openai",
-                data=json.dumps({"model": "openai", "messages": messages, "temperature": 0.65}).encode("utf-8"),
-                headers={"Content-Type": "application/json", "User-Agent": "SellerAssist/1.0"},
-                method="POST",
-            )
-            with urllib.request.urlopen(req, timeout=15) as r:
-                raw = r.read().decode("utf-8", errors="replace").strip()
-                reply = json.loads(raw)["choices"][0]["message"]["content"].strip() if raw.startswith("{") else raw
-                if reply:
-                    workspace["last_model_used"] = "OpenAI / Pollinations Neural"
-        except Exception:
-            pass
-
-    st.session_state["telemetry"]["calls"] += 1
-    st.session_state["telemetry"]["last_latency_ms"] = int((time.time() - t0) * 1000)
-
-    if reply:
-        return reply
-
-    return (
-        f"Here is {ast['name']}'s analysis for **{prompt}**:\n\n"
-        "- **Urgent Stockout Priority:** SKU `SLR-104` (Linen Cross-Back Apron) has only **3.2 days** of stock left against a 12-day lead time (EOQ Reorder: **30 units**), and `SLR-106` (Ceramic Matcha Whisk Holder) has **3.0 days** left (EOQ Reorder: **28 units**).\n"
-        "- **Profit & Margin Leader:** `SLR-102` (Walnut Cutting Board) generates **$40.99 net profit per unit** after marketplace fees, driving $368.91/week.\n"
-        "- **Next Step:** Click **📋 Generate PO** or **🏷️ Export CSV** on the left panel to execute this workflow."
-    )
-
-def neural_speech(text, voice, eleven_id="21m00Tcm4TlvDq8ikWAM"):
-    clean = re.sub(r"[*#`_~>|]+", " ", text or "").strip()[:800]
-    if not clean:
-        return ""
-    eleven_key = secret("ELEVENLABS_API_KEY")
-    if eleven_key:
-        try:
-            req = urllib.request.Request(
-                f"https://api.elevenlabs.io/v1/text-to-speech/{eleven_id}",
-                data=json.dumps({"text": clean, "model_id": "eleven_multilingual_v2"}).encode(),
-                headers={"xi-api-key": eleven_key, "Content-Type": "application/json", "Accept": "audio/mpeg"},
-                method="POST",
-            )
-            with urllib.request.urlopen(req, timeout=12) as resp:
-                b = resp.read()
-            if len(b) > 300:
-                return base64.b64encode(b).decode("ascii")
-        except Exception:
-            pass
     try:
-        import edge_tts
-        async def gen():
-            aud = bytearray()
-            async for chunk in edge_tts.Communicate(clean, voice).stream():
-                if chunk.get("type") == "audio":
-                    aud.extend(chunk.get("data") or b"")
-            return base64.b64encode(aud).decode("ascii")
-        return asyncio.run(gen())
-    except Exception:
-        return ""
+        response, provider = _sa_shared_brain_reply(
+            mode, ASSISTANTS[mode], workspace, prompt,
+            reference, _sa_get_prefs(), secret,
+        )
+        workspace['last_model_used'] = provider
+        return response
+    except _sa_brain_unavailable as error:
+        st.session_state['telemetry']['errors'] += 1
+        return 'AI generation unavailable: ' + str(error)
+    finally:
+        st.session_state['telemetry']['calls'] += 1
+        st.session_state['telemetry']['last_latency_ms'] = int((time.time()-t0)*1000)
+
+
+def neural_speech(text, voice, eleven_id=''):
+    """Compatibility shim. Preferred runtime uses the shared asynchronous voice worker."""
+    from seller_voice_v29 import synthesize
+    cfg={'name':'Alex' if voice == 'en-US-JennyNeural' else 'Assistant', 'voice':voice, 'eleven_voice_id':eleven_id}
+    return synthesize(text,cfg,secret)[0]
 
 def process_message(mode, workspace, prompt, ref=False):
-    prompt = (prompt or "").strip()
-    ref_text = workspace["file_text"] if ref else ""
+    prompt = (prompt or '').strip()
+    if ref:
+        uploaded = st.session_state.get('sa_shared_csv', '')
+        ref_text = ('USER-UPLOADED '+st.session_state.get('sa_shared_kind','shop').upper()+' CSV:\n'+uploaded) if uploaded else ('BUILT-IN SAMPLE INVENTORY (NOT USER DATA):\n'+SAMPLE_SELLER_CSV)
+    else:
+        ref_text = ''
     if not prompt and not ref_text:
         return
     reply = run_ai(mode, workspace, prompt, ref_text)
-    now = datetime.now().strftime("%b %d · %I:%M %p")
-    workspace["messages"].append({"role": "user", "content": prompt or "Review file.", "time": now})
-    workspace["messages"].append({"role": "assistant", "content": reply, "time": now})
-    workspace["last_reply"] = reply
-    cfg = ASSISTANTS[mode]
-    workspace["last_audio"] = neural_speech(reply, cfg["voice"], cfg.get("eleven_voice_id", ""))
-    workspace["reply_id"] = uuid.uuid4().hex
+    now = datetime.now().strftime('%b %d · %I:%M %p')
+    workspace.setdefault('messages', []).extend([
+        {'role': 'user', 'content': prompt or 'Review uploaded file.', 'time': now},
+        {'role': 'assistant', 'content': reply, 'time': now},
+    ])
+    workspace['last_reply'] = reply
+    workspace['reply_id'] = uuid.uuid4().hex
+    if reply.startswith('AI generation unavailable:'):
+        workspace['last_audio'] = ''
+        workspace['last_audio_mime'] = ''
+        workspace['last_audio_error'] = 'No successful AI reply to narrate.'
+    else:
+        _sa_schedule_voice(workspace, reply, ASSISTANTS[mode], secret)
 
 def render_dashboard_charts(periods, sales_list, profit_list, daily_budget, sku_labels, sku_stock, sku_sales, sym):
     payload = {
@@ -772,13 +702,41 @@ DASHBOARD_CHARTS_HTML = r"""<!DOCTYPE html>
 """
 
 def render_avatar(assistant, workspace):
-    payload = {
-        "name": assistant["name"], "room": assistant["level"], "accent": assistant["color"],
-        "photo": assistant["photo"], "text": workspace["last_reply"] or f"Hi! I'm {assistant['name']} in {assistant['level']}. Let's boost your sales!",
-        "audio": workspace["last_audio"], "replyId": workspace["reply_id"]
-    }
-    safe = json.dumps(payload, ensure_ascii=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
-    components.html(AVATAR_HTML.replace("__PAYLOAD__", safe), height=635, scrolling=False)
+    """Render original user-supplied mouth/eye shader; collect audio asynchronously."""
+    def _display():
+        if _sa_collect_voice(workspace):
+            st.rerun()
+        payload = {
+            'name': assistant['name'], 'room': assistant['level'], 'accent': assistant['color'],
+            'photo': assistant['photo'], 'text': workspace.get('last_reply') or
+                f"Hi! I'm {assistant['name']} in {assistant['level']}. How can I help today?",
+            'audio': workspace.get('last_audio',''),
+            'audioMime': workspace.get('last_audio_mime') or 'audio/mpeg',
+            'audioError': workspace.get('last_audio_error',''),
+            'pending': _sa_voice_pending(workspace),
+            'replyId': workspace.get('reply_id',''),
+        }
+        safe = json.dumps(payload, ensure_ascii=False).replace('<', r'\u003c').replace('>', r'\u003e').replace('&', r'\u0026')
+        components.html(AVATAR_HTML.replace('__PAYLOAD__', safe), height=635, scrolling=False)
+    if _sa_voice_pending(workspace) and hasattr(st,'fragment'):
+        st.fragment(run_every='1s')(_display)()
+    else:
+        _display()
+
+
+def _sa_voice_status(mode, workspace):
+    if _sa_voice_pending(workspace):
+        st.caption('AI reply ready. Preparing the generated character voice in the background…')
+    elif workspace.get('last_audio'):
+        st.caption('Voice: ' + workspace.get('last_audio_provider','generated audio'))
+    elif workspace.get('last_reply') and not workspace['last_reply'].startswith('AI generation unavailable:'):
+        st.caption('Voice could not be generated. The character mouth/eye preview still works independently.')
+        if workspace.get('last_audio_error'):
+            with st.expander('Voice diagnostics'):
+                st.caption(workspace['last_audio_error'])
+        if st.button('Regenerate voice for this reply',key='sa_merge_voice_'+mode):
+            _sa_schedule_voice(workspace, workspace['last_reply'], ASSISTANTS[mode], secret)
+            st.rerun()
 
 AVATAR_HTML = r"""<!DOCTYPE html>
 <html lang="en">
@@ -794,7 +752,8 @@ AVATAR_HTML = r"""<!DOCTYPE html>
     background: #ffffff; display: flex; flex-direction: column; box-shadow: 6px 6px 0px #b39ddb;
   }
   .stage { height: 445px; position: relative; background: linear-gradient(135deg, #e0f7fa 0%, #ede7f6 100%); overflow: hidden; }
-  #glCanvas { width: 100%; height: 100%; display: block; }
+  #portraitFallback {position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:linear-gradient(135deg,#e0f7fa,#ede7f6);}
+  #glCanvas { position:relative; width: 100%; height: 100%; display: block; }
   .plate {
     position: absolute; top: 12px; left: 12px; border: 2px solid #7e57c2; background: #fff; color: #512da8;
     padding: 6px 14px; font-weight: 700; font-size: 11px; border-radius: 16px; font-family: 'Quicksand', sans-serif;
@@ -822,6 +781,7 @@ AVATAR_HTML = r"""<!DOCTYPE html>
 <body>
 <div class="panel">
   <div class="stage">
+    <img id="portraitFallback" aria-hidden="true" alt=""/>
     <canvas id="glCanvas"></canvas>
     <div class="plate" id="plate"></div>
     <div class="live-pill">● KAWAII AI</div>
@@ -831,6 +791,7 @@ AVATAR_HTML = r"""<!DOCTYPE html>
       <div style="display:flex;gap:8px;">
         <button id="speak" type="button">▶ Play Audio Voice</button>
         <button class="alt" id="stop" type="button">■ Stop</button>
+        <button class="alt" id="preview" type="button">Preview lips</button>
       </div>
     </div>
     <audio id="voice" controls preload="auto"></audio>
@@ -844,6 +805,7 @@ AVATAR_HTML = r"""<!DOCTYPE html>
   const C = __PAYLOAD__;
   const $= id => document.getElementById(id);$('plate').textContent = C.name + ' · ' + C.room;
   $('caption').textContent = C.text;
+  $('portraitFallback').src = C.photo;
 
   const sound = $('voice');
   const PRESETS = {
@@ -854,6 +816,7 @@ AVATAR_HTML = r"""<!DOCTYPE html>
   };
   let landmarks = PRESETS[C.name] || PRESETS.Morgan;
   const canvas = $('glCanvas'), gl = canvas.getContext('webgl', { alpha: false, antialias: true });
+  if (!gl) {canvas.style.display='none';$('status').textContent='WebGL unavailable: showing the portrait without animation.';return;}
 
   const VS = `attribute vec2 aPos; attribute vec2 aUv; varying vec2 vUv; uniform float uZoom; uniform vec2 uHeadSway; void main() { vUv = aUv; vec2 pos = aPos * uZoom + uHeadSway * smoothstep(0.9,0.1,aUv.y); gl_Position = vec4(pos, 0.0, 1.0); }`;
   const FS = `
@@ -929,7 +892,7 @@ AVATAR_HTML = r"""<!DOCTYPE html>
   const estDurationMs = Math.min(22000, Math.max(4500, wordCount * 350));
 
   let mouthOpen = 0, blink = 0, nextBlink = performance.now() + 1800, isSpeaking = false;
-  let lipSyncUntil = performance.now() + estDurationMs;
+  let lipSyncUntil = 0;
 
   let audioCtx = null, analyser = null, freqData = null, sourceConnected = false;
   function ensureAudioAnalyser() {
@@ -947,7 +910,7 @@ AVATAR_HTML = r"""<!DOCTYPE html>
   }
 
   if (C.audio) {
-    sound.src = 'data:audio/mpeg;base64,' + C.audio;
+    sound.src = 'data:' + (C.audioMime || 'audio/mpeg') + ';base64,' + C.audio;
     sound.style.display = 'block';
   } else {
     sound.style.display = 'none';
@@ -1001,20 +964,11 @@ AVATAR_HTML = r"""<!DOCTYPE html>
   requestAnimationFrame(render);
 
   function speakFallbackBrowserTTS() {
-    lipSyncUntil = performance.now() + estDurationMs;
-    isSpeaking = true;
-    $('status').textContent = 'Speaking…';
-    if (!('speechSynthesis' in window)) return;
-    try {
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.resume();
-      const u = new SpeechSynthesisUtterance(C.text);
-      window._activeUtterance = u;
-      u.onstart = () => { isSpeaking = true; lipSyncUntil = performance.now() + estDurationMs; $('status').textContent = 'Speaking (Browser TTS)…'; };
-      u.onend = () => { isSpeaking = false; lipSyncUntil = 0; $('status').textContent = 'Audio Ready'; };
-      u.onerror = () => { isSpeaking = false; $('status').textContent = 'Audio Ready'; };
-      window.speechSynthesis.speak(u);
-    } catch (e) {}
+    // Intentional visual preview only: do not substitute an unintended male browser voice.
+    lipSyncUntil = performance.now() + Math.min(4800, estDurationMs);
+    isSpeaking = false;
+    $('status').textContent = C.pending ? 'Preparing generated voice…' :
+      (C.audioError || 'Generated voice unavailable. Preview lips is available.');
   }
 
   async function play() {
@@ -1035,6 +989,7 @@ AVATAR_HTML = r"""<!DOCTYPE html>
   }
 
   $('speak').onclick = play;
+  $('preview').onclick = () => { lipSyncUntil = performance.now() + 5000; $('status').textContent = 'Lip animation preview'; };
   $('stop').onclick = () => {
     sound.pause();
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -1053,7 +1008,7 @@ AVATAR_HTML = r"""<!DOCTYPE html>
     lipSyncUntil = 0;
     $('status').textContent = 'Audio Ready';
   };
-  setTimeout(play, 300);
+  if (C.audio && C.replyId) setTimeout(play, 300);
 })();
 </script>
 </body>
@@ -1249,6 +1204,18 @@ MIC_HTML = r"""<!DOCTYPE html>
 </html>
 """
 
+from seller_town_pages import render_page, PAGES
+
+# SELLER ASSIST CROSS-PAGE HANDOFF v23
+if st.session_state.get('nav_selector') not in PAGES:
+    st.session_state['nav_selector'] = PAGES[0]
+requested_page = st.session_state.pop('sa_page_request', None)
+if requested_page in PAGES:
+    st.session_state['nav_selector'] = requested_page
+requested_model = st.session_state.pop('sa_mode_request', None)
+if requested_model in ASSISTANTS:
+    st.session_state['bit_mode'] = requested_model
+
 # Sidebar Navigation with Gamification & Global Settings
 with st.sidebar:
     st.markdown("## 🌸 SELLER ASSIST")
@@ -1256,7 +1223,7 @@ with st.sidebar:
     st.markdown("### **MAIN NAVIGATION**")
     nav_mode = st.radio(
         "Select View",
-        ["📊 Executive Dashboard", "🎨 Specialist Rooms (4 AI Models)"],
+        ["🏡 Home", "📦 Inventory Lab", "🎨 Listings & Marketing", "🚚 Orders & Suppliers", "💰 Finance Desk", "🤖 AI Team", "⚙️ Settings & Data"],
         index=0,
         key="nav_selector",
         label_visibility="collapsed",
@@ -1268,7 +1235,7 @@ with st.sidebar:
     market_choice = st.selectbox("🏷️ Marketplace Fee Model", list(MARKETPLACE_FEES.keys()), index=0)
     active_fee_rate = MARKETPLACE_FEES[market_choice]
 
-    if nav_mode == "🎨 Specialist Rooms (4 AI Models)":
+    if nav_mode == "🤖 AI Team":
         st.markdown("### **CHOOSE AI LEVEL**")
         mode = st.radio("Select Level", list(ASSISTANTS), key="bit_mode", label_visibility="collapsed")
         info = ASSISTANTS[mode]
@@ -1277,283 +1244,46 @@ with st.sidebar:
     st.divider()
     st.markdown("### **🛠️ Sentry APM & Telemetry**")
     tel = st.session_state["telemetry"]
-    st.caption(f"🟢 Sentry Status: {'Connected' if SENTRY_AVAILABLE else 'Active (Simulated)'}")
+    st.caption(f"🟢 Sentry Status: {'SDK installed (DSN not verified)' if SENTRY_AVAILABLE else 'SDK not installed'}")
     st.caption(f"⚡ Last AI Latency: {tel['last_latency_ms']} ms")
     st.caption(f"📡 Brain Calls: {tel['calls']} · Errors: {tel['errors']}")
     st.divider()
-    if st.button("🧹 Reset View & Cache", use_container_width=True):
-        if nav_mode == "🎨 Specialist Rooms (4 AI Models)":
-            data["messages"] = []
-            data["last_reply"] = ""
+    if nav_mode == "🤖 AI Team" and st.button("Clear conversation", use_container_width=True):
+        data["messages"] = []
+        data["last_reply"] = ""
         st.rerun()
 
-if nav_mode == "📊 Executive Dashboard":
-    st.markdown(
-        """
-        <div class="kawaii-header">
-          <div>
-            <h1>EXECUTIVE COMMAND DASHBOARD<br><span style="color:#7e57c2;font-size:0.65em;">GLOBAL CSV SYNC · FEE SIMULATOR · EXPORTS · GAMIFICATION</span></h1>
-            <p>Upload shop CSV metrics once to instantly sync across all 4 AI Specialist Rooms, simulate marketplace fees, and export POs & Schedule C P&Ls.</p>
-          </div>
-          <div>
-            <span class="kawaii-badge">⭐ XP: {XP_VAL} LVL 3</span>
-          </div>
-        </div>
-        """.replace("{XP_VAL}", str(st.session_state["seller_xp"])),
-        unsafe_allow_html=True,
-    )
-
-    # Operable Interactive Kawaii Character & Building Cards Matching Your Exact Reference
-    st.markdown("### **🌸 Interactive Kawaii Headquarters**")
-    kc1, kc2, kc3, kc4 = st.columns(4)
-    with kc1:
-        if st.button("🐰 Bunny Painter\n\nRun TabPFN Inventory Forecast", use_container_width=True, type="primary"):
-            add_xp(50)
-            workspaces["Level 1: Inventory Lab"]["tabpfn_report"] = run_tabpfn_inventory_forecast(SAMPLE_SELLER_CSV, active_fee_rate)
-            st.success("🐰 Bunny Painter successfully generated your TabPFN EOQ Inventory Forecast! (+50 XP)")
-    with kc2:
-        if st.button("🍞 Smiling Bread House\n\nGenerate Supplier PO", use_container_width=True, type="primary"):
-            add_xp(50)
-            workspaces["Level 3: Ops & PO Room"]["generated_po"] = generate_supplier_po(workspaces["Level 3: Ops & PO Room"])
-            st.success("🍞 Smiling Bread House baked a fresh Purchase Order! (+50 XP)")
-    with kc3:
-        if st.button("🐸 Mailbox Frog\n\nExport Listing CSV", use_container_width=True, type="primary"):
-            add_xp(50)
-            workspaces["Level 2: Listing Studio"]["exported_listing_csv"] = generate_shopify_etsy_listing_csv("Artisan Ceramic Mug", f"{28.00*(1+active_fee_rate):.2f}", "Kitchen")
-            st.success("🐸 Mailbox Frog delivered your bulk listing CSV export! (+50 XP)")
-    with kc4:
-        if st.button("🐝 Honey Bee Scout\n\nCheck SerpApi Market", use_container_width=True, type="primary"):
-            add_xp(50)
-            st.success(fetch_serpapi_competitor_pricing("Hand-Poured Lavender Soy Candle"))
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    up_col1, up_col2 = st.columns([1.35, 1.0], gap="medium")
-    with up_col1:
-        uploaded_metrics = st.file_uploader(
-            "📂 Upload Global Shop CSV (Syncs Dashboard & All 4 AI Specialist Rooms)",
-            type=["csv"],
-        )
-        dl1, dl2, dl3 = st.columns(3)
-        with dl1:
-            st.download_button(
-                "⬇️ Sample P&L CSV",
-                data=SAMPLE_DASHBOARD_CSV,
-                file_name="financial_metrics.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
-        with dl2:
-            st.download_button(
-                "⬇️ Sample Inventory CSV",
-                data=SAMPLE_SELLER_CSV,
-                file_name="seller_inventory.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
-        with dl3:
-            if st.button("⭐ Claim +150 XP", use_container_width=True):
-                add_xp(150)
-                st.success("Claimed +150 Seller XP!")
-                st.rerun()
-
-    with up_col2:
-        with st.expander("🎯 Configure Budgets & What-If Pricing", expanded=True):
-            b_col1, b_col2, b_col3 = st.columns(3)
-            with b_col1:
-                daily_budget_input = st.number_input("Daily ($)", min_value=10.0, value=float(st.session_state["dash_budgets"]["daily"]), step=50.0)
-            with b_col2:
-                monthly_budget_input = st.number_input("Monthly ($)", min_value=100.0, value=float(st.session_state["dash_budgets"]["monthly"]), step=500.0)
-            with b_col3:
-                annual_budget_input = st.number_input("Annual ($)", min_value=1000.0, value=float(st.session_state["dash_budgets"]["annual"]), step=5000.0)
-            
-            st.session_state["dash_budgets"]["daily"] = daily_budget_input
-            st.session_state["dash_budgets"]["monthly"] = monthly_budget_input
-            st.session_state["dash_budgets"]["annual"] = annual_budget_input
-            db_save_budget("daily", daily_budget_input)
-            db_save_budget("monthly", monthly_budget_input)
-            db_save_budget("annual", annual_budget_input)
-
-            price_adj = st.slider("🏷️ What-If Price Adjustment (%)", min_value=-20, max_value=30, value=0, step=5)
-
-    periods = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    sales_vals = [1200.0, 1450.0, 1320.0, 1680.0, 1950.0, 2400.0, 2100.0]
-    profit_vals = [780.0, 940.0, 850.0, 1100.0, 1280.0, 1560.0, 1370.0]
-    sku_labels = ["SLR-101", "SLR-102", "SLR-103", "SLR-104", "SLR-105", "SLR-106"]
-    sku_stock = [14, 8, 42, 5, 29, 6]
-    sku_sales = [19, 9, 15, 11, 8, 14]
-    active_inventory_csv = SAMPLE_SELLER_CSV
-
-    if uploaded_metrics is not None:
-        try:
-            raw_csv = uploaded_metrics.getvalue().decode("utf-8", errors="replace")
-            rows = list(csv.DictReader(io.StringIO(raw_csv)))
-            if rows:
-                headers_lower = {k.strip().lower(): k for k in rows[0].keys() if k}
-                if "sales" in headers_lower and "profit" in headers_lower:
-                    s_key = headers_lower["sales"]
-                    p_key = headers_lower["profit"]
-                    d_key = headers_lower.get("day") or headers_lower.get("date") or headers_lower.get("period")
-                    periods = [str(r.get(d_key, f"P{i+1}")) for i, r in enumerate(rows)]
-                    sales_vals = [float(r.get(s_key, 0) or 0) * (1 + price_adj/100.0) for r in rows]
-                    profit_vals = [float(r.get(p_key, 0) or 0) * (1 + price_adj/100.0) for r in rows]
-                    st.success(f"Synced {len(rows)} rows globally across dashboard & AI rooms!")
-                elif "retail_price_usd" in headers_lower and "weekly_units_sold" in headers_lower:
-                    active_inventory_csv = raw_csv
-                    for mode_name in workspaces:
-                        workspaces[mode_name]["file_text"] = raw_csv
-                    sku_labels, sku_stock, sku_sales = [], [], []
-                    periods, sales_vals, profit_vals = [], [], []
-                    for i, r in enumerate(rows):
-                        sku = r.get(headers_lower.get("sku", ""), f"SKU-{i+1}")
-                        cost = float(r.get(headers_lower.get("unit_cost_usd", ""), 5) or 5)
-                        price = float(r.get(headers_lower.get("retail_price_usd", ""), 20) or 20) * (1 + price_adj/100.0)
-                        stock = float(r.get(headers_lower.get("stock_on_hand", ""), 10) or 10)
-                        wk_sold = float(r.get(headers_lower.get("weekly_units_sold", ""), 7) or 7)
-                        rev_item = price * wk_sold
-                        prof_item = (price - cost - (price * active_fee_rate)) * wk_sold
-                        sku_labels.append(sku)
-                        sku_stock.append(int(stock))
-                        sku_sales.append(int(wk_sold))
-                        periods.append(sku)
-                        sales_vals.append(round(rev_item, 2))
-                        profit_vals.append(round(prof_item, 2))
-                    st.success(f"Global sync active! Processed {len(rows)} SKUs.")
-        except Exception as e:
-            st.error(f"Error parsing uploaded CSV: {e}")
-
-    sales_fx = [round(v * fx_rate, 2) for v in sales_vals]
-    profit_fx = [round(v * fx_rate, 2) for v in profit_vals]
-    daily_budget_fx = st.session_state["dash_budgets"]["daily"] * fx_rate
-    monthly_budget_fx = st.session_state["dash_budgets"]["monthly"] * fx_rate
-    annual_budget_fx = st.session_state["dash_budgets"]["annual"] * fx_rate
-
-    total_sales_period = sum(sales_fx)
-    total_profit_period = sum(profit_fx)
-    n_periods = max(1, len(profit_fx))
-    daily_profit = total_profit_period / n_periods
-    monthly_profit = daily_profit * 30.0
-    annual_profit = daily_profit * 365.0
-    daily_sales = total_sales_period / n_periods
-    monthly_sales = daily_sales * 30.0
-    annual_sales = daily_sales * 365.0
-    margin_pct = round((total_profit_period / max(1.0, total_sales_period)) * 100, 1)
-
-    k1, k2, k3, k4 = st.columns(4)
-    with k1:
-        st.markdown(
-            f'<div class="kawaii-card"><h4>📅 DAILY PROFIT & BUDGET</h4>'
-            f'<div class="big-num" style="color:#ff4081;">{fx_sym}{daily_profit:,.2f}</div>'
-            f'<small>Sales: {fx_sym}{daily_sales:,.2f} · Budget: {fx_sym}{daily_budget_fx:,.0f}/day</small></div>',
-            unsafe_allow_html=True,
-        )
-    with k2:
-        st.markdown(
-            f'<div class="kawaii-card"><h4>🗓️ MONTHLY PROFIT & BUDGET</h4>'
-            f'<div class="big-num" style="color:#00bcd4;">{fx_sym}{monthly_profit:,.2f}</div>'
-            f'<small>Sales: {fx_sym}{monthly_sales:,.0f} · Budget: {fx_sym}{monthly_budget_fx:,.0f}/mo</small></div>',
-            unsafe_allow_html=True,
-        )
-    with k3:
-        st.markdown(
-            f'<div class="kawaii-card"><h4>📆 ANNUAL PROFIT & BUDGET</h4>'
-            f'<div class="big-num" style="color:#00e676;">{fx_sym}{annual_profit:,.2f}</div>'
-            f'<small>Sales: {fx_sym}{annual_sales:,.0f} · Budget: {fx_sym}{annual_budget_fx:,.0f}/yr</small></div>',
-            unsafe_allow_html=True,
-        )
-    with k4:
-        st.markdown(
-            f'<div class="kawaii-card"><h4>💰 PERIOD GROSS SALES</h4>'
-            f'<div class="big-num" style="color:#7c4dff;">{fx_sym}{total_sales_period:,.2f}</div>'
-            f'<small>Net Profit: {fx_sym}{total_profit_period:,.2f} ({margin_pct}% margin)</small></div>',
-            unsafe_allow_html=True,
-        )
-
-    render_dashboard_charts(
-        periods,
-        sales_fx,
-        profit_fx,
-        daily_budget_fx,
-        sku_labels,
-        sku_stock,
-        sku_sales,
-        fx_sym,
-    )
-
-    dash_left, dash_right = st.columns([1.25, 1.0], gap="medium")
-
-    with dash_left:
-        st.markdown('<div class="kawaii-panel">', unsafe_allow_html=True)
-        st.markdown("#### 🎯 Daily, Monthly & Annual Budget Tracker")
-        d_ratio = min(1.0, daily_sales / max(1.0, daily_budget_fx))
-        m_ratio = min(1.0, monthly_sales / max(1.0, monthly_budget_fx))
-        a_ratio = min(1.0, annual_sales / max(1.0, annual_budget_fx))
-        st.progress(d_ratio, text=f"Daily Sales ({fx_sym}{daily_sales:,.0f} / {fx_sym}{daily_budget_fx:,.0f}) — {int(d_ratio*100)}%")
-        st.progress(m_ratio, text=f"Monthly Projected ({fx_sym}{monthly_sales:,.0f} / {fx_sym}{monthly_budget_fx:,.0f}) — {int(m_ratio*100)}%")
-        st.progress(a_ratio, text=f"Annual Projected ({fx_sym}{annual_sales:,.0f} / {fx_sym}{annual_budget_fx:,.0f}) — {int(a_ratio*100)}%")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        st.markdown('<div class="kawaii-panel">', unsafe_allow_html=True)
-        st.markdown("#### 📥 1-Click Downloadable Business Exports")
-        ex1, ex2, ex3 = st.columns(3)
-        with ex1:
-            po_text = generate_supplier_po(workspaces["Level 3: Ops & PO Room"])
-            st.download_button("⬇️ Download PO", data=po_text, file_name="supplier_purchase_order.txt", mime="text/plain", use_container_width=True)
-        with ex2:
-            tax_text = generate_schedule_c_pl(active_inventory_csv, active_fee_rate)
-            st.download_button("⬇️ Schedule C P&L", data=tax_text, file_name="schedule_c_summary.txt", mime="text/plain", use_container_width=True)
-        with ex3:
-            list_csv = generate_shopify_etsy_listing_csv("Artisan Ceramic Mug", f"{28.00*(1+price_adj/100.0):.2f}", "Kitchen & Dining")
-            st.download_button("⬇️ Listing CSV", data=list_csv, file_name="bulk_listings.csv", mime="text/csv", use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        st.markdown('<div class="kawaii-panel">', unsafe_allow_html=True)
-        st.markdown("#### 🔍 Live SerpApi Competitor Price Intelligence")
-        sc1, sc2 = st.columns([2.2, 1.0])
-        with sc1:
-            comp_query = st.text_input("Product or SKU to benchmark:", "Hand-Poured Lavender Soy Candle", label_visibility="collapsed")
-        with sc2:
-            run_serp = st.button("Check Market", type="primary", use_container_width=True)
-        if run_serp:
-            st.markdown(fetch_serpapi_competitor_pricing(comp_query))
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with dash_right:
-        st.markdown('<div class="kawaii-panel">', unsafe_allow_html=True)
-        st.markdown("#### ✅ Persistent Seller To-Do List (+50 XP per Task)")
-        todos = db_load_todos()
-        done_count = 0
-        for item in todos:
-            checked = st.checkbox(item["task"], value=item["done"], key=f"todo_db_{item['id']}")
-            if checked != item["done"]:
-                db_save_todo_status(item["id"], checked)
-                if checked:
-                    add_xp(50)
-                st.rerun()
-            if checked:
-                done_count += 1
-        st.progress(done_count / max(1, len(todos)), text=f"Task Completion: {done_count} / {len(todos)} Done")
-
-        new_task_col1, new_task_col2 = st.columns([2.2, 1.0])
-        with new_task_col1:
-            new_task_txt = st.text_input("Add task", placeholder="Add a new seller task...", label_visibility="collapsed")
-        with new_task_col2:
-            if st.button("➕ Add", use_container_width=True) and new_task_txt.strip():
-                db_add_todo(new_task_txt.strip())
-                add_xp(25)
-                st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        with st.expander("🔮 TabPFN-3.5 EOQ Restock & Schedule C Summary", expanded=True):
-            st.markdown(run_tabpfn_inventory_forecast(active_inventory_csv, active_fee_rate))
-
+if nav_mode != "🤖 AI Team":
+    # SELLER ASSIST ROUTING v23 — preserves the modular page branch.
+    # Dedicated business pages reuse the existing live app tools and workspaces.
+    render_page(nav_mode, {
+        "workspaces": workspaces,
+        "SAMPLE_DASHBOARD_CSV": SAMPLE_DASHBOARD_CSV,
+        "SAMPLE_SELLER_CSV": SAMPLE_SELLER_CSV,
+        "active_fee_rate": active_fee_rate,
+        "fx_rate": fx_rate,
+        "fx_sym": fx_sym,
+        "add_xp": add_xp,
+        "db_load_todos": db_load_todos,
+        "db_add_todo": db_add_todo,
+        "db_save_todo_status": db_save_todo_status,
+        "db_save_budget": db_save_budget,
+        "run_tabpfn_inventory_forecast": run_tabpfn_inventory_forecast,
+        "generate_supplier_po": generate_supplier_po,
+        "generate_shopify_etsy_listing_csv": generate_shopify_etsy_listing_csv,
+        "fetch_serpapi_competitor_pricing": fetch_serpapi_competitor_pricing,
+        "generate_schedule_c_pl": generate_schedule_c_pl,
+        "render_dashboard_charts": render_dashboard_charts,
+        "ASSISTANTS": ASSISTANTS,
+        "secret": secret,
+    })
 else:
     st.markdown(
         f"""
         <div class="kawaii-header">
           <div>
-            <h1>SPECIALIST AI ROOMS<br><span style="color:#7e57c2;font-size:0.65em;">SUCCESS IS YOUR REALITY · {info['level']}</span></h1>
-            <p>Private AI back-office for Etsy, eBay &amp; Shopify. Globally synced with your dashboard CSV data. Talk to {info['name']} by voice or text.</p>
+            <h1>MEET YOUR AI TEAM<br><span style="color:#7e57c2;font-size:0.65em;">SUCCESS IS YOUR REALITY · {info['level']}</span></h1>
+            <p>Private AI back-office for marketplace sellers. Upload your shop CSV under Settings &amp; Data, then consult {info['name']} by voice or text.</p>
             <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
               <span class="kawaii-badge">🎨 Active: {info['name']} ({mode})</span>
               <span class="kawaii-badge" style="background:#00e676;color:#2b2d42 !important;">🧠 {data['last_model_used']}</span>
@@ -1561,7 +1291,7 @@ else:
             </div>
           </div>
           <div>
-            <span class="kawaii-badge" style="background:#00e676;color:#2b2d42 !important;">● SYNCED ACTIVE</span>
+            <span class="kawaii-badge" style="background:#00e676;color:#2b2d42 !important;">● SHARED SESSION</span>
           </div>
         </div>
         """,
@@ -1571,39 +1301,16 @@ else:
     col_left, col_center, col_right = st.columns([1.0, 1.32, 1.08], gap="medium")
 
     with col_left:
-        st.markdown("#### 📦 Globally Synced Seller Data")
-        if st.button("🔮 Run TabPFN Forecast on Synced CSV", use_container_width=True, type="primary"):
-            data["tabpfn_report"] = run_tabpfn_inventory_forecast(data["file_text"], active_fee_rate)
-            data["schedule_c_pl"] = generate_schedule_c_pl(data["file_text"], active_fee_rate)
-            process_message(mode, data, "Review globally synced shop inventory and highlight top restock actions.", ref=True)
-            st.rerun()
-
-        act1, act2 = st.columns(2)
-        with act1:
-            if st.button("📋 Generate PO", use_container_width=True):
-                data["generated_po"] = generate_supplier_po(data)
-                st.rerun()
-        with act2:
-            if st.button("🏷️ Export CSV", use_container_width=True):
-                data["exported_listing_csv"] = generate_shopify_etsy_listing_csv("Artisan Ceramic Mug", f"{28.00*(1+active_fee_rate):.2f}", "Kitchen")
-                st.rerun()
-
-        if data.get("tabpfn_report"):
-            with st.expander("🔮 TabPFN EOQ Forecast", expanded=True):
-                st.markdown(data["tabpfn_report"])
-        if data.get("schedule_c_pl"):
-            with st.expander("📊 Schedule C P&L & Nexus"):
-                st.markdown(data["schedule_c_pl"])
-        if data.get("generated_po"):
-            with st.expander("📦 Purchase Order", expanded=True):
-                st.markdown(data["generated_po"])
-        if data.get("exported_listing_csv"):
-            with st.expander("🏷️ Listing CSV", expanded=True):
-                st.code(data["exported_listing_csv"], language="csv")
+        _sa_specialist_room_tools(
+            mode, data, inventory_csv=_sa_inventory_source(data), fee_rate=active_fee_rate,
+            run_forecast=run_tabpfn_inventory_forecast, run_po=generate_supplier_po,
+            run_listing=generate_shopify_etsy_listing_csv, run_pl=generate_schedule_c_pl,
+        )
 
     with col_center:
         st.markdown(f"<div style='text-align:center; margin-bottom:6px;font-weight:800;color:#512da8;'><b>{info['name']}</b> · {info['level']}</div>", unsafe_allow_html=True)
         render_avatar(info, data)
+        _sa_voice_status(mode, data)
 
     with col_right:
         st.markdown(f"<div style='color:#512da8;font-weight:700;margin-bottom:6px;'>💬 Consult with {info['name']}</div>", unsafe_allow_html=True)

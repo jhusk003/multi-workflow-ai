@@ -3,4 +3,4 @@ pandas>=2.2.3
 altair>=5.4.0
 requests>=2.31.0
 edge-tts>=6.1.9
-sentry-sdk>=1.40.0
+sentry-sdk>=1.40.0tabpfn-client>=0.1
